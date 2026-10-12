@@ -14,8 +14,6 @@ import { saveTransactionToSupabase } from "../lib/transactionStorage";
 import { useAuth } from "../components/auth/AuthProvider";
 import Dropdown from "../components/Dropdown";
 
-const CATEGORIES = ["All", "Coffee", "Tea", "Bakery", "Food", "Beverage"];
-
 export const PosPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -221,9 +219,9 @@ export const PosPage: React.FC = () => {
       {/* Left Area: Catalog & Product Search */}
       <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-auto min-w-0 space-y-4">
         {/* Top Controls: Search & Category Chips */}
-        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+        <div className="flex flex-row gap-3 items-center justify-between">
           {/* Search Box */}
-          <div className="w-full lg:w-72 shrink-0">
+          <div className="w-full lg:w-72">
             <Input
               placeholder="Search products or scan barcode..."
               value={searchQuery}
@@ -233,24 +231,10 @@ export const PosPage: React.FC = () => {
           </div>
 
           {/* Category Chips */}
-          {/* <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
-                  selectedCategory === category
-                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
-                    : "bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-200/60"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div> */}
           <Dropdown
             label={selectedCategory}
             align="right"
+            size="sm"
             items={[
               { label: "All", onClick: () => setSelectedCategory("All") },
               {

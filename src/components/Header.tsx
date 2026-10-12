@@ -2,6 +2,7 @@ import React from "react";
 import { useDateTime } from "../configs/hooks/useDateTime";
 import { Clock, Calendar, Bell, Search, Wifi, Menu } from "lucide-react";
 import { Badge } from "./Badge";
+import { useStoreSettings } from "../configs/hooks";
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -9,6 +10,7 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { time, date } = useDateTime();
+  const { store } = useStoreSettings();
 
   return (
     <header className="h-16 bg-white border-b border-slate-200/80 px-4 md:px-6 flex items-center justify-between shrink-0 shadow-sm z-30">
@@ -30,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             Online
           </Badge>
           <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-            Store #46 - Main Terminal
+            {store?.name}
           </span>
         </div>
       </div>

@@ -14,6 +14,7 @@ type DropdownButtonProps = {
   variant?: "primary" | "secondary" | "outline" | "danger" | "ghost";
   align?: "left" | "right";
   disabled?: boolean;
+  size?: "sm" | "md" | "lg";
 };
 
 export default function Dropdown({
@@ -22,6 +23,7 @@ export default function Dropdown({
   variant = "primary",
   align = "left",
   disabled = false,
+  size = "md",
 }: DropdownButtonProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -64,6 +66,7 @@ export default function Dropdown({
         aria-haspopup="true"
         aria-expanded={open}
         variant={variant}
+        size={size}
       >
         {label}
         {/* Chevron icon */}
