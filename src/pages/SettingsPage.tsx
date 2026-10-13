@@ -6,6 +6,7 @@ import {
   AlertCircle,
   CheckCircle2,
   User,
+  Store,
 } from "lucide-react";
 import { useStoreSettings, useUserSettings } from "../configs/hooks";
 
@@ -30,6 +31,7 @@ export const SettingsPage: React.FC = () => {
   // User form state
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
 
   // Sync store state
   useEffect(() => {
@@ -40,7 +42,7 @@ export const SettingsPage: React.FC = () => {
       setDefaultSalesTaxRate(
         store.default_sales_tax_rate != null
           ? String(store.default_sales_tax_rate)
-          : ""
+          : "",
       );
     }
   }, [store]);
@@ -50,6 +52,7 @@ export const SettingsPage: React.FC = () => {
     if (userSettings) {
       setUsername(userSettings.username ?? "");
       setEmail(userSettings.email ?? "");
+      setRole(userSettings.role ?? "");
     }
   }, [userSettings]);
 
@@ -184,9 +187,7 @@ export const SettingsPage: React.FC = () => {
             </div>
           </>
         ) : (
-          <p className="text-sm text-slate-500">
-            User profile data not found.
-          </p>
+          <p className="text-sm text-slate-500">User profile data not found.</p>
         )}
       </Card>
 
@@ -194,7 +195,8 @@ export const SettingsPage: React.FC = () => {
       {store ? (
         <>
           <Card className="space-y-4">
-            <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
+            <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+              <Store size={14} className="text-indigo-500" />
               Store Information
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -203,18 +205,21 @@ export const SettingsPage: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. My Store"
+                disabled={role !== "admin"}
               />
               <Input
                 label="Store Branch Code"
                 value={branchCode}
                 onChange={(e) => setBranchCode(e.target.value)}
                 placeholder="e.g. STR-01"
+                disabled={role !== "admin"}
               />
               <Input
                 label="Receipt Footer Note"
                 value={receiptFooterNote}
                 onChange={(e) => setReceiptFooterNote(e.target.value)}
                 placeholder="e.g. Thank you for visiting!"
+                disabled={role !== "admin"}
               />
               <Input
                 label="Default Sales Tax Rate (%)"
@@ -222,6 +227,7 @@ export const SettingsPage: React.FC = () => {
                 onChange={(e) => setDefaultSalesTaxRate(e.target.value)}
                 type="number"
                 placeholder="e.g. 5.0"
+                disabled={role !== "admin"}
               />
             </div>
           </Card>
@@ -235,6 +241,7 @@ export const SettingsPage: React.FC = () => {
                 <input
                   type="checkbox"
                   className="rounded text-indigo-600 focus:ring-indigo-500"
+                  disabled={role !== "admin"}
                 />
                 <span>
                   Automatically trigger cash drawer open on cash checkout
@@ -244,6 +251,7 @@ export const SettingsPage: React.FC = () => {
                 <input
                   type="checkbox"
                   className="rounded text-indigo-600 focus:ring-indigo-500"
+                  disabled={role !== "admin"}
                 />
                 <span>
                   Auto-print paper receipt upon successful card transaction
@@ -253,6 +261,7 @@ export const SettingsPage: React.FC = () => {
                 <input
                   type="checkbox"
                   className="rounded text-indigo-600 focus:ring-indigo-500"
+                  disabled={role !== "admin"}
                 />
                 <span>Enable sound feedback on barcode scan</span>
               </label>
@@ -269,7 +278,7 @@ export const SettingsPage: React.FC = () => {
                 )
               }
               onClick={handleSaveStore}
-              disabled={saving}
+              disabled={saving || role !== "admin"}
             >
               {saving ? "Saving..." : "Save Store Settings"}
             </Button>
