@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge, Card } from "../";
 import { Plus, Check } from "lucide-react";
-import type { Product } from "../../configs/hooks/useCart";
+import type { Product } from "../../hooks/useCart";
 
 interface ProductCardProps {
   product: Product;

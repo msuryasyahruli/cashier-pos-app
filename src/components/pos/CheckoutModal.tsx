@@ -12,7 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { CompletedOrderInfo } from "./posTypes";
-import type { CartSummary } from "../../configs/hooks/useCart";
+import type { CartSummary } from "../../hooks/useCart";
 
 interface CheckoutModalProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../../lib/supabaseClient";
-import { useAuth } from "../../components/auth/AuthProvider";
+import { supabase } from "../services/supabaseClient";
+import { useAuth } from "../context/AuthContext";
 
 export interface StoreSettings {
   id: string;

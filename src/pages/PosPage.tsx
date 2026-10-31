@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCart, type Product } from "../configs/hooks/useCart";
+import { useCart, type Product } from "../hooks/useCart";
 import { Input } from "../components";
 import {
   ProductCard,
@@ -9,9 +9,9 @@ import {
   type CompletedOrderInfo,
 } from "../components/pos";
 import { Search, ShoppingCart } from "lucide-react";
-import { supabase } from "../lib/supabaseClient";
-import { saveTransactionToSupabase } from "../lib/transactionStorage";
-import { useAuth } from "../components/auth/AuthProvider";
+import { supabase } from "../services/supabaseClient";
+import { saveTransactionToSupabase } from "../services/transactionStorage";
+import { useAuth } from "../context/AuthContext";
 import Dropdown from "../components/Dropdown";
 
 export const PosPage: React.FC = () => {

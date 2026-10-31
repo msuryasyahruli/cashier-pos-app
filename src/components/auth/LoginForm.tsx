@@ -1,7 +1,7 @@
 // src/components/auth/LoginForm.tsx
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "../../services/supabaseClient";
 import { Lock, Eye, EyeOff, Mail, AlertCircle, Loader2 } from "lucide-react";
 
 export const LoginForm = () => {

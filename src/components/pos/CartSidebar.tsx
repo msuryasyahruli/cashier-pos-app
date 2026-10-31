@@ -10,7 +10,7 @@ import {
   QrCode,
   X,
 } from "lucide-react";
-import type { CartItem, CartSummary } from "../../configs/hooks/useCart";
+import type { CartItem, CartSummary } from "../../hooks/useCart";
 
 interface CartSidebarProps {
   items: CartItem[];

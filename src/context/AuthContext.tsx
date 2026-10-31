@@ -1,4 +1,4 @@
-// src/components/auth/AuthProvider.tsx
+// src/context/AuthContext.tsx
 import {
   createContext,
   useContext,
@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "../services/supabaseClient";
 import type { Session, User } from "@supabase/supabase-js";
 
 export interface UserProfile {

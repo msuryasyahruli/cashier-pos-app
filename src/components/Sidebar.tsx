@@ -9,7 +9,7 @@ import {
   LogOut,
   X,
 } from "lucide-react";
-import { useAuth } from "./auth/AuthProvider";
+import { useAuth } from "../context/AuthContext";
 
 export interface SidebarProps {
   isOpenMobile?: boolean;

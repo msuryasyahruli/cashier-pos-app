@@ -1,8 +1,8 @@
 import React from "react";
-import { useDateTime } from "../configs/hooks/useDateTime";
+import { useDateTime } from "../hooks/useDateTime";
 import { Clock, Calendar, Bell, Search, Wifi, Menu } from "lucide-react";
 import { Badge } from "./Badge";
-import { useStoreSettings } from "../configs/hooks";
+import { useStoreSettings } from "../hooks";
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;

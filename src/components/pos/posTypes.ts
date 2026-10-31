@@ -1,4 +1,4 @@
-import type { Product } from "../../configs/hooks/useCart";
+import type { Product } from "../../hooks/useCart";
 
 export interface CompletedOrderInfo {
   orderNumber: string;

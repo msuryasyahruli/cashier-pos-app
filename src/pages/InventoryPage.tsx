@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Badge, Button, Input, Table, type Column } from "../components";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "../services/supabaseClient";
 import {
   Search,
   Plus,
@@ -99,7 +99,8 @@ export const InventoryPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
   const [editId, setEditId] = useState<string>("");
-  const [editProduct, setEditProduct] = useState<InventoryFormState>(EMPTY_FORM);
+  const [editProduct, setEditProduct] =
+    useState<InventoryFormState>(EMPTY_FORM);
 
   const fetchInventory = async () => {
     setLoading(true);

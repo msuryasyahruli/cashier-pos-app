@@ -9,11 +9,11 @@ import {
   Banknote,
   Smartphone,
 } from "lucide-react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "../services/supabaseClient";
 import {
   fetchTransactionDetailFromSupabase,
   type StoredTransactionDetail,
-} from "../lib/transactionStorage";
+} from "../services/transactionStorage";
 import type { TransactionItem } from "../components/pos";
 import {
   formatDate,

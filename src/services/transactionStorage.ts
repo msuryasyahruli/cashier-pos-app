@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import type { CartSummary, Product } from "../configs/hooks/useCart";
+import type { CartSummary, Product } from "../hooks/useCart";
 
 export interface OrderItemDetail {
   id?: string;

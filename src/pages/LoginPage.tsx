@@ -1,7 +1,7 @@
 // src/pages/login.tsx
 import { Navigate } from "react-router-dom";
 import { LoginForm } from "../components/auth/LoginForm";
-import { useAuth } from "../components/auth/AuthProvider";
+import { useAuth } from "../context/AuthContext";
 
 export const LoginPage = () => {
   const { user, loading } = useAuth();

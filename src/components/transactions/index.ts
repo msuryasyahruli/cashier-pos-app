@@ -1,2 +1,2 @@
-export * from "./transactionHelpers";
+export * from "../../utils/transactionHelpers";
 export * from "./TransactionDetailModal";

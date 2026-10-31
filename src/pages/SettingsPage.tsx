@@ -8,7 +8,7 @@ import {
   User,
   Store,
 } from "lucide-react";
-import { useStoreSettings, useUserSettings } from "../configs/hooks";
+import { useStoreSettings, useUserSettings } from "../hooks";
 
 export const SettingsPage: React.FC = () => {
   const { store, loading, saving, error, success, updateStore } =

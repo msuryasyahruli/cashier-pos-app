@@ -10,8 +10,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { TransactionItem } from "../pos";
-import type { StoredTransactionDetail } from "../../lib/transactionStorage";
-import { formatDate } from "./transactionHelpers";
+import type { StoredTransactionDetail } from "../../services/transactionStorage";
+import { formatDate } from "../../utils/transactionHelpers";
 
 interface TransactionDetailModalProps {
   selectedTx: TransactionItem | null;
