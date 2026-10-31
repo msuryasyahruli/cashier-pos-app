@@ -8,7 +8,6 @@ import {
   User,
   Store,
   Plus,
-  Database,
   Tags,
   Pencil,
   Trash2,
@@ -50,7 +49,9 @@ export const SettingsPage: React.FC = () => {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categorySubmitting, setCategorySubmitting] = useState(false);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
-  const [editingCategory, setEditingCategory] = useState<StoreCategory | null>(null);
+  const [editingCategory, setEditingCategory] = useState<StoreCategory | null>(
+    null,
+  );
 
   // Store form state
   const [name, setName] = useState("");
@@ -145,14 +146,18 @@ export const SettingsPage: React.FC = () => {
       : await createCategoryForStore(store.id, categoryName);
     setCategorySubmitting(false);
     if (result.error) {
-      alert(`Failed to ${editingCategory ? "update" : "create"} category: ${result.error.message}`);
+      alert(
+        `Failed to ${editingCategory ? "update" : "create"} category: ${result.error.message}`,
+      );
       return;
     }
     if (result.data) {
       const updatedCategory = result.data;
       setCategories((previous) =>
         editingCategory
-          ? previous.map((category) => category.id === updatedCategory.id ? updatedCategory : category)
+          ? previous.map((category) =>
+              category.id === updatedCategory.id ? updatedCategory : category,
+            )
           : [...previous, updatedCategory],
       );
     }
@@ -161,14 +166,22 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleDeleteCategory = async (category: StoreCategory) => {
-    if (!store?.id || !category.store_id || category.store_id !== store.id) return;
-    if (!confirm(`Delete the category "${category.name}"? Products using it will keep their category text.`)) return;
+    if (!store?.id || !category.store_id || category.store_id !== store.id)
+      return;
+    if (
+      !confirm(
+        `Delete the category "${category.name}"? Products using it will keep their category text.`,
+      )
+    )
+      return;
     const { error } = await deleteCategoryForStore(category.id, store.id);
     if (error) {
       alert(`Failed to delete category: ${error.message}`);
       return;
     }
-    setCategories((previous) => previous.filter((item) => item.id !== category.id));
+    setCategories((previous) =>
+      previous.filter((item) => item.id !== category.id),
+    );
   };
 
   const isLoading = loading || userLoading;
@@ -192,7 +205,8 @@ export const SettingsPage: React.FC = () => {
           Terminal & Store Settings
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Configure cashier terminal, manage user profile, and customize store settings
+          Configure cashier terminal, manage user profile, and customize store
+          settings
         </p>
       </div>
 
@@ -299,26 +313,54 @@ export const SettingsPage: React.FC = () => {
                 <Tags size={14} className="text-indigo-500" />
                 Store Categories
               </h2>
-              <Button size="sm" variant="outline" icon={<Plus size={14} />} onClick={openCreateCategory}>
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<Plus size={14} />}
+                onClick={openCreateCategory}
+              >
                 New Category
               </Button>
             </div>
             {categories.length === 0 ? (
-              <p className="text-xs text-slate-500">No categories have been created for this store yet.</p>
+              <p className="text-xs text-slate-500">
+                No categories have been created for this store yet.
+              </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {categories.map((category) => {
                   const isStoreOwned = category.store_id === store.id;
                   return (
-                    <div key={`${category.store_id || "legacy"}-${category.id}`} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2">
+                    <div
+                      key={`${category.store_id || "legacy"}-${category.id}`}
+                      className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2"
+                    >
                       <div>
-                        <p className="text-sm font-medium text-slate-700">{category.name}</p>
-                        {!isStoreOwned && <p className="text-[10px] text-slate-400">Legacy category</p>}
+                        <p className="text-sm font-medium text-slate-700">
+                          {category.name}
+                        </p>
+                        {!isStoreOwned && (
+                          <p className="text-[10px] text-slate-400">
+                            Legacy category
+                          </p>
+                        )}
                       </div>
                       {isStoreOwned && (
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEditCategory(category)} aria-label={`Edit ${category.name}`} />
-                          <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={() => handleDeleteCategory(category)} aria-label={`Delete ${category.name}`} />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Pencil size={14} />}
+                            onClick={() => openEditCategory(category)}
+                            aria-label={`Edit ${category.name}`}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Trash2 size={14} />}
+                            onClick={() => handleDeleteCategory(category)}
+                            aria-label={`Delete ${category.name}`}
+                          />
                         </div>
                       )}
                     </div>
@@ -451,7 +493,8 @@ export const SettingsPage: React.FC = () => {
                 Set Up Your Store
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                You haven't set up a store yet. Create one now to begin managing products and taking orders.
+                You haven't set up a store yet. Create one now to begin managing
+                products and taking orders.
               </p>
             </div>
           </div>
@@ -505,23 +548,6 @@ export const SettingsPage: React.FC = () => {
           </form>
         </Card>
       )}
-
-      {/* Database Integration Info Note */}
-      <Card className="bg-slate-50/70 border border-slate-200/80 p-4 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-          <Database size={15} className="text-indigo-500" />
-          <span>Multi-Store Database Migration Note</span>
-        </div>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          The app supports both database-level and client-isolated product management per store.
-          To enable foreign key constraint and server-level indexing in your Supabase project,
-          run the migration in{" "}
-          <code className="text-indigo-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">
-            supabase/migrations/20261031_add_store_id_to_products.sql
-          </code>{" "}
-          via your Supabase Dashboard SQL Editor.
-        </p>
-      </Card>
 
       <CreateStoreModal
         isOpen={isCreateStoreModalOpen}
