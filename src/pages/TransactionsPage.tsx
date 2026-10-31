@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, Badge, Button, Input, Table, type Column } from "../components";
 import {
   Search,
@@ -28,10 +28,57 @@ export const TransactionsPage: React.FC = () => {
     "All" | "Completed" | "Refunded" | "Pending"
   >("All");
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [selectedTx, setSelectedTx] = useState<TransactionItem | null>(null);
   const [txDetail, setTxDetail] = useState<StoredTransactionDetail | null>(
     null,
   );
+
+  // Overall metric totals across database
+  const [metrics, setMetrics] = useState({
+    todaySales: 0,
+    completedCount: 0,
+    avgTicket: 0,
+  });
+
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("total, status, created_at");
+
+      if (!error && data) {
+        const todayStr = new Date().toISOString().split("T")[0];
+
+        let todaySum = 0;
+        let completed = 0;
+        let completedTotal = 0;
+
+        for (const tx of data) {
+          const isCompleted = tx.status === "Completed";
+          const txDateStr = tx.created_at ? tx.created_at.split("T")[0] : "";
+
+          if (isCompleted) {
+            completed++;
+            completedTotal += Number(tx.total) || 0;
+            if (txDateStr === todayStr) {
+              todaySum += Number(tx.total) || 0;
+            }
+          }
+        }
+
+        setMetrics({
+          todaySales: todaySum,
+          completedCount: completed,
+          avgTicket: completed > 0 ? completedTotal / completed : 0,
+        });
+      }
+    } catch (e) {
+      console.error("Error fetching transaction metrics:", e);
+    }
+  }, []);
 
   const columns: Column<TransactionItem>[] = [
     {
@@ -130,20 +177,60 @@ export const TransactionsPage: React.FC = () => {
     };
   }, [selectedTx]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
+    const from = (currentPage - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
       .from("transactions")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false });
+
+    if (statusFilter !== "All") {
+      query = query.eq("status", statusFilter);
+    }
+
+    if (searchTerm.trim()) {
+      const term = `%${searchTerm.trim()}%`;
+      query = query.or(
+        `order_number.ilike.${term},cashier.ilike.${term},payment_method.ilike.${term}`,
+      );
+    }
+
+    const { data, count, error } = await query.range(from, to);
 
     if (error) {
       console.error("Error fetching transactions:", error);
     } else if (data) {
       setTransactions(data as TransactionItem[]);
+      setTotalCount(count ?? data.length);
     }
     setLoading(false);
+  }, [currentPage, pageSize, statusFilter, searchTerm]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (status: "All" | "Completed" | "Refunded" | "Pending") => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1);
   };
 
   const handleRefund = async () => {
@@ -196,53 +283,17 @@ export const TransactionsPage: React.FC = () => {
 
       // Refresh the list and close modal
       await fetchTransactions();
+      await fetchMetrics();
       setSelectedTx(null);
     } catch (e) {
       console.error("Unexpected error during refund:", e);
     }
   };
 
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  const filtered = transactions.filter((tx) => {
-    const matchesSearch =
-      tx.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.cashier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.payment_method?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "All" || tx.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  // Metrics calculation
-  const isSameDay = (d1: Date, d2: Date) =>
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate();
-
-  const todaySales = transactions
-    .filter((tx) => {
-      if (tx.status !== "Completed") return false;
-      const txDate = new Date(tx.created_at);
-      return !isNaN(txDate.getTime()) && isSameDay(txDate, new Date());
-    })
-    .reduce((acc, tx) => acc + (Number(tx.total) || 0), 0);
-
-  const completedCount = transactions.filter(
-    (i) => i.status === "Completed",
-  ).length;
-
-  const avgTicket =
-    completedCount > 0
-      ? transactions
-          .filter((i) => i.status === "Completed")
-          .reduce((acc, tx) => acc + (Number(tx.total) || 0), 0) /
-        completedCount
-      : 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
-    <div className="flex-1 p-8 bg-slate-50 overflow-y-auto space-y-6">
+    <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -259,7 +310,7 @@ export const TransactionsPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportTransactionsCSV(filtered)}
+            onClick={() => exportTransactionsCSV(transactions)}
             icon={<Download size={15} />}
           >
             Export CSV
@@ -275,7 +326,7 @@ export const TransactionsPage: React.FC = () => {
           </span>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900 font-mono">
-              ${todaySales.toFixed(2)}
+              ${metrics.todaySales.toFixed(2)}
             </span>
             <Badge variant="success" size="sm">
               Live
@@ -289,10 +340,10 @@ export const TransactionsPage: React.FC = () => {
           </span>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900 font-mono">
-              {completedCount}
+              {metrics.completedCount}
             </span>
             <span className="text-xs text-slate-400 font-medium">
-              out of {transactions.length} total
+              out of {totalCount} total
             </span>
           </div>
         </Card>
@@ -303,7 +354,7 @@ export const TransactionsPage: React.FC = () => {
           </span>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900 font-mono">
-              ${avgTicket.toFixed(2)}
+              ${metrics.avgTicket.toFixed(2)}
             </span>
             <span className="text-xs text-slate-400 font-medium">
               per order
@@ -320,7 +371,7 @@ export const TransactionsPage: React.FC = () => {
             <Input
               placeholder="Search by Order ID, Cashier, or Payment..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               icon={<Search size={15} />}
             />
           </div>
@@ -331,7 +382,7 @@ export const TransactionsPage: React.FC = () => {
               (status) => (
                 <button
                   key={status}
-                  onClick={() => setStatusFilter(status)}
+                  onClick={() => handleStatusChange(status)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                     statusFilter === status
                       ? "bg-indigo-600 text-white shadow-xs"
@@ -347,7 +398,7 @@ export const TransactionsPage: React.FC = () => {
 
         {/* Transactions Table */}
         <Table
-          data={filtered}
+          data={transactions}
           columns={columns}
           loading={loading}
           onRowClick={(tx) => setSelectedTx(tx)}
@@ -357,6 +408,16 @@ export const TransactionsPage: React.FC = () => {
               No transactions match your criteria
             </div>
           }
+          pagination={{
+            currentPage,
+            totalPages,
+            totalItems: totalCount,
+            pageSize,
+            pageSizeOptions: [10, 20, 50],
+            onPageChange: (p) => setCurrentPage(p),
+            onPageSizeChange: handlePageSizeChange,
+            disabled: loading,
+          }}
         />
       </Card>
 

@@ -58,7 +58,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
           "bg-white flex flex-col shrink-0 border-slate-200/80",
 
           // ── Desktop layout (sm+) ──
-          "sm:relative sm:w-96 sm:border-l sm:shadow-none sm:translate-y-0 sm:z-auto sm:h-full",
+          "sm:relative sm:w-72 lg:w-96 sm:border-l sm:shadow-none sm:translate-y-0 sm:z-auto sm:h-full",
 
           // ── Mobile layout: full-width bottom sheet, slide in/out ──
           "fixed bottom-0 left-0 right-0 z-40 border-t rounded-t-2xl shadow-2xl",

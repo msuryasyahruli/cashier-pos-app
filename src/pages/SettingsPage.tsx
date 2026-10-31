@@ -87,7 +87,7 @@ export const SettingsPage: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 p-8 bg-slate-50 overflow-y-auto space-y-6 max-w-4xl">
+    <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
           Terminal Settings

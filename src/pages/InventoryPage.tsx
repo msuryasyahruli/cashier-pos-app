@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, Badge, Button, Input, Table, type Column } from "../components";
 import { supabase } from "../services/supabaseClient";
 import {
@@ -19,9 +19,39 @@ import {
 export const InventoryPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
   const [newProduct, setNewProduct] = useState<InventoryFormState>(EMPTY_FORM);
+
+  // Overall stock metrics across entire inventory
+  const [metricTotalSkus, setMetricTotalSkus] = useState<number>(0);
+  const [metricLowStockCount, setMetricLowStockCount] = useState<number>(0);
+  const [metricTotalUnits, setMetricTotalUnits] = useState<number>(0);
+
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, stock, low_stock_threshold");
+      if (!error && data) {
+        setMetricTotalSkus(data.length);
+        const low = data.filter(
+          (p: any) => p.stock <= (p.low_stock_threshold ?? 5),
+        ).length;
+        const total = data.reduce(
+          (acc: number, p: any) => acc + (Number(p.stock) || 0),
+          0,
+        );
+        setMetricLowStockCount(low);
+        setMetricTotalUnits(total);
+      }
+    } catch (err) {
+      console.error("Error fetching inventory metrics:", err);
+    }
+  }, []);
 
   const columns: Column<InventoryItem>[] = [
     {
@@ -61,8 +91,13 @@ export const InventoryPage: React.FC = () => {
       header: "Status",
       key: "status",
       accessor: (item) => {
+        const isOos = item.stock === 0;
         const isLow = item.stock <= item.low_stock_threshold;
-        return isLow ? (
+        return isOos ? (
+          <Badge variant="danger" size="sm" className="gap-1">
+            <AlertTriangle size={12} /> Out of Stock
+          </Badge>
+        ) : isLow ? (
           <Badge variant="warning" size="sm" className="gap-1">
             <AlertTriangle size={12} /> Low Stock
           </Badge>
@@ -102,24 +137,53 @@ export const InventoryPage: React.FC = () => {
   const [editProduct, setEditProduct] =
     useState<InventoryFormState>(EMPTY_FORM);
 
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+
+    const from = (currentPage - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
       .from("products")
-      .select("*")
-      .order("name");
+      .select("*", { count: "exact" })
+      .order("name", { ascending: true });
+
+    if (searchTerm.trim()) {
+      const term = `%${searchTerm.trim()}%`;
+      query = query.or(
+        `name.ilike.${term},sku.ilike.${term},category.ilike.${term}`,
+      );
+    }
+
+    const { data, count, error } = await query.range(from, to);
 
     if (error) {
       console.error("Error fetching products:", error);
     } else if (data) {
       setInventory(data as InventoryItem[]);
+      setTotalCount(count ?? data.length);
     }
     setLoading(false);
-  };
+  }, [currentPage, pageSize, searchTerm]);
 
   useEffect(() => {
     fetchInventory();
-  }, []);
+  }, [fetchInventory]);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
+
+  // Reset to page 1 whenever searchTerm or pageSize changes
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1);
+  };
 
   const handleAddProduct = async () => {
     if (
@@ -153,6 +217,7 @@ export const InventoryPage: React.FC = () => {
       setIsAddOpen(false);
       setNewProduct(EMPTY_FORM);
       fetchInventory();
+      fetchMetrics();
     }
   };
 
@@ -208,6 +273,7 @@ export const InventoryPage: React.FC = () => {
       setEditProduct(EMPTY_FORM);
       setEditId("");
       fetchInventory();
+      fetchMetrics();
     }
   };
 
@@ -221,23 +287,14 @@ export const InventoryPage: React.FC = () => {
       alert(`Failed to delete product: ${error.message}`);
     } else {
       fetchInventory();
+      fetchMetrics();
     }
   };
 
-  const filtered = inventory.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  const lowStockItems = inventory.filter(
-    (i) => i.stock <= i.low_stock_threshold,
-  );
-  const totalStock = inventory.reduce((acc, i) => acc + i.stock, 0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
-    <div className="flex-1 p-8 bg-slate-50 overflow-y-auto space-y-6">
+    <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -269,7 +326,7 @@ export const InventoryPage: React.FC = () => {
               Total SKUs
             </span>
             <p className="text-2xl font-extrabold text-slate-900 font-mono">
-              {inventory.length}
+              {metricTotalSkus}
             </p>
           </div>
         </Card>
@@ -283,7 +340,7 @@ export const InventoryPage: React.FC = () => {
               Low Stock Alerts
             </span>
             <p className="text-2xl font-extrabold text-amber-600 font-mono">
-              {lowStockItems.length}
+              {metricLowStockCount}
             </p>
           </div>
         </Card>
@@ -297,7 +354,7 @@ export const InventoryPage: React.FC = () => {
               Total Units in Stock
             </span>
             <p className="text-2xl font-extrabold text-slate-900 font-mono">
-              {totalStock}
+              {metricTotalUnits}
             </p>
           </div>
         </Card>
@@ -308,19 +365,29 @@ export const InventoryPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
           <div className="w-full sm:w-80">
             <Input
-              placeholder="Search by SKU or title..."
+              placeholder="Search by SKU, name, or category..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               icon={<Search size={15} />}
             />
           </div>
         </div>
 
         <Table
-          data={filtered}
+          data={inventory}
           columns={columns}
           loading={loading}
           emptyMessage="No inventories found"
+          pagination={{
+            currentPage,
+            totalPages,
+            totalItems: totalCount,
+            pageSize,
+            pageSizeOptions: [10, 20, 50],
+            onPageChange: (p) => setCurrentPage(p),
+            onPageSizeChange: handlePageSizeChange,
+            disabled: loading,
+          }}
         />
       </Card>
 

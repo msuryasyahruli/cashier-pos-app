@@ -21,11 +21,11 @@ export const LoginForm = () => {
     setErrorMsg(null);
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setErrorMsg("Masukkan email yang valid.");
+      setErrorMsg("Please enter a valid email address.");
       return;
     }
     if (!password || password.length < 6) {
-      setErrorMsg("Password minimal 6 karakter.");
+      setErrorMsg("Password must be at least 6 characters.");
       return;
     }
 
@@ -38,11 +38,11 @@ export const LoginForm = () => {
 
     if (error) {
       if (error.message?.includes("Invalid login")) {
-        setErrorMsg("Email atau password salah.");
+        setErrorMsg("Invalid email or password.");
       } else if (error.message?.includes("Email not confirmed")) {
-        setErrorMsg("Email belum dikonfirmasi. Cek inbox Anda.");
+        setErrorMsg("Email has not been confirmed yet. Please check your inbox.");
       } else {
-        setErrorMsg(error.message ?? "Login gagal. Coba lagi.");
+        setErrorMsg(error.message ?? "Login failed. Please try again.");
       }
     } else {
       navigate(from, { replace: true });
@@ -72,7 +72,7 @@ export const LoginForm = () => {
           <input
             id="login-email"
             type="email"
-            placeholder="nama@email.com"
+            placeholder="name@email.com"
             className="flex-1 outline-none text-sm text-slate-800 placeholder-slate-400 bg-transparent"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -120,7 +120,7 @@ export const LoginForm = () => {
           onClick={() => navigate("/reset-password")}
           className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline font-medium transition-colors"
         >
-          Lupa Password?
+          Forgot Password?
         </button>
       </div>
 
@@ -133,10 +133,10 @@ export const LoginForm = () => {
         {loading ? (
           <>
             <Loader2 className="animate-spin" size={16} />
-            Memproses...
+            Processing...
           </>
         ) : (
-          "Masuk"
+          "Sign In"
         )}
       </button>
     </form>

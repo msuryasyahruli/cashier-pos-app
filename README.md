@@ -1,4 +1,4 @@
-# Cashier Point of Sale (POS) Application
+# note bill - Point of Sale (POS) Application
 
 A modern, responsive Point of Sale application built with React, TypeScript, and Vite. This application is designed for retail environments to manage products, process sales, and handle customer transactions efficiently.
 
@@ -55,18 +55,26 @@ A modern, responsive Point of Sale application built with React, TypeScript, and
 
 ```
 cashier-app/
-├── public/          # Static assets
+├── index.html
+├── public/
+│   ├── favicon.svg
+│   └── icons.svg
 ├── src/
-│   ├── components/  # React components (e.g., Sidebar, Navbar, ProductCard)
-│   ├── contexts/    # React Context for state management (e.g., AuthContext, ProductContext)
-│   ├── hooks/       # Custom React hooks
-│   ├── layouts/     # Application layouts (e.g., MainLayout)
-│   ├── pages/       # Page components (e.g., Dashboard, POS, ProductList)
-│   ├── services/    # API calls and business logic
-│   ├── types/       # TypeScript type definitions
-│   └── App.tsx      # Root component
-├── tailwind.config.js # Tailwind CSS configuration
-└── vite.config.ts     # Vite configuration
+│   ├── assets/              # Static media, icons, and images
+│   ├── components/          # Reusable UI components (buttons, modals, tables, pos widgets)
+│   ├── hooks/               # Custom React hooks (useCart, useDateTime, useStoreSettings, useUserSettings)
+│   ├── context/             # React context providers (AuthContext, etc.)
+│   ├── services/            # API clients & data storage (supabaseClient, transactionStorage)
+│   ├── utils/               # Helper & utility functions (transactionHelpers, etc.)
+│   ├── App.tsx              # Root App component
+│   ├── main.tsx             # Application entrypoint
+│   ├── index.css            # Global Tailwind CSS definitions
+│   ├── App.css              # App-level styling
+│   ├── pages/               # Page views (PosPage, InventoryPage, TransactionsPage, SettingsPage, LoginPage)
+│   └── configs/             # Application configs and route definitions
+├── package.json
+├── vite.config.ts
+└── README.md
 ```
 
 ## Technologies Used

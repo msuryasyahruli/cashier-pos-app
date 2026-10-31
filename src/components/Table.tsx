@@ -1,5 +1,6 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
+import { Pagination, type PaginationProps } from './Pagination';
 
 export interface Column<T> {
   header: React.ReactNode;
@@ -18,6 +19,9 @@ export interface TableProps<T> {
   emptyMessage?: React.ReactNode;
   className?: string;
   keyExtractor?: (row: T, index: number) => string | number;
+  pagination?: PaginationProps;
+  showRowNumber?: boolean;
+  striped?: boolean;
 }
 
 export function Table<T>({
@@ -28,6 +32,9 @@ export function Table<T>({
   emptyMessage = 'No data available',
   className = '',
   keyExtractor,
+  pagination,
+  showRowNumber = true,
+  striped = true,
 }: TableProps<T>) {
   const getAlignmentClass = (align?: 'left' | 'center' | 'right') => {
     if (align === 'center') return 'text-center';
@@ -55,11 +62,26 @@ export function Table<T>({
     return index;
   };
 
+  const totalColumnsCount = columns.length + (showRowNumber ? 1 : 0);
+
+  // Compute starting row number taking pagination into account
+  const getRowNumber = (index: number) => {
+    if (pagination && pagination.currentPage && pagination.pageSize) {
+      return (pagination.currentPage - 1) * pagination.pageSize + index + 1;
+    }
+    return index + 1;
+  };
+
   return (
     <div className={`overflow-x-auto ${className}`}>
       <table className="w-full text-left border-collapse text-xs">
         <thead>
           <tr className="bg-slate-50 text-slate-500 border-b border-slate-200/60 uppercase font-semibold tracking-wider">
+            {showRowNumber && (
+              <th className="py-3 px-4 w-12 text-center text-slate-400 font-mono">
+                #
+              </th>
+            )}
             {columns.map((col, idx) => (
               <th
                 key={col.key || idx}
@@ -74,7 +96,7 @@ export function Table<T>({
           {loading ? (
             <tr>
               <td
-                colSpan={columns.length}
+                colSpan={totalColumnsCount}
                 className="text-center py-10 text-slate-500 font-medium"
               >
                 <div className="flex items-center justify-center gap-2">
@@ -89,37 +111,48 @@ export function Table<T>({
           ) : data.length === 0 ? (
             <tr>
               <td
-                colSpan={columns.length}
+                colSpan={totalColumnsCount}
                 className="text-center py-12 text-slate-400 font-medium"
               >
                 {emptyMessage}
               </td>
             </tr>
           ) : (
-            data.map((row, index) => (
-              <tr
-                key={getRowKey(row, index)}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={`transition-colors ${
-                  onRowClick
-                    ? 'hover:bg-slate-50/80 cursor-pointer'
-                    : 'hover:bg-slate-50/70'
-                }`}
-                title={onRowClick ? 'Click to view details' : undefined}
-              >
-                {columns.map((col, colIdx) => (
-                  <td
-                    key={col.key || colIdx}
-                    className={`py-3.5 px-4 ${getAlignmentClass(col.align)} ${col.className || ''}`}
-                  >
-                    {renderCellContent(row, col)}
-                  </td>
-                ))}
-              </tr>
-            ))
+            data.map((row, index) => {
+              const isOdd = index % 2 === 1;
+              const bgClass = striped && isOdd ? 'bg-slate-50/60' : 'bg-white';
+
+              return (
+                <tr
+                  key={getRowKey(row, index)}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={`transition-colors ${bgClass} ${
+                    onRowClick
+                      ? 'hover:bg-slate-100/80 cursor-pointer'
+                      : 'hover:bg-slate-50'
+                  }`}
+                  title={onRowClick ? 'Click to view details' : undefined}
+                >
+                  {showRowNumber && (
+                    <td className="py-3.5 px-4 text-center font-mono text-slate-400 select-none">
+                      {getRowNumber(index)}
+                    </td>
+                  )}
+                  {columns.map((col, colIdx) => (
+                    <td
+                      key={col.key || colIdx}
+                      className={`py-3.5 px-4 ${getAlignmentClass(col.align)} ${col.className || ''}`}
+                    >
+                      {renderCellContent(row, col)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>
+      {pagination && <Pagination {...pagination} />}
     </div>
   );
 }

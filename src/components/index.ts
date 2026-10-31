@@ -6,3 +6,5 @@ export * from './Modal';
 export * from './Sidebar';
 export * from './Header';
 export * from './Table';
+export * from './Pagination';
+export * from './Logo';
