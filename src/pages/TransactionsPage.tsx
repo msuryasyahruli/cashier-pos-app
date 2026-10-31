@@ -8,20 +8,30 @@ import {
   CreditCard,
   Banknote,
   Smartphone,
+  Store,
+  Plus,
 } from "lucide-react";
-import { supabase } from "../services/supabaseClient";
 import {
   fetchTransactionDetailFromSupabase,
   type StoredTransactionDetail,
 } from "../services/transactionStorage";
+import {
+  fetchTransactionsByStore,
+  fetchTransactionMetrics,
+} from "../services/transactionService";
+import { supabase } from "../services/supabaseClient";
 import type { TransactionItem } from "../components/pos";
 import {
   formatDate,
   exportTransactionsCSV,
   TransactionDetailModal,
 } from "../components/transactions";
+import { useStore } from "../context/StoreContext";
+import { CreateStoreModal } from "../components/store/CreateStoreModal";
 
 export const TransactionsPage: React.FC = () => {
+  const { currentStore } = useStore();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState<boolean>(true);
   const [statusFilter, setStatusFilter] = useState<
@@ -35,8 +45,9 @@ export const TransactionsPage: React.FC = () => {
   const [txDetail, setTxDetail] = useState<StoredTransactionDetail | null>(
     null,
   );
+  const [isCreateStoreOpen, setIsCreateStoreOpen] = useState(false);
 
-  // Overall metric totals across database
+  // Store-scoped metrics
   const [metrics, setMetrics] = useState({
     todaySales: 0,
     completedCount: 0,
@@ -44,41 +55,13 @@ export const TransactionsPage: React.FC = () => {
   });
 
   const fetchMetrics = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("total, status, created_at");
-
-      if (!error && data) {
-        const todayStr = new Date().toISOString().split("T")[0];
-
-        let todaySum = 0;
-        let completed = 0;
-        let completedTotal = 0;
-
-        for (const tx of data) {
-          const isCompleted = tx.status === "Completed";
-          const txDateStr = tx.created_at ? tx.created_at.split("T")[0] : "";
-
-          if (isCompleted) {
-            completed++;
-            completedTotal += Number(tx.total) || 0;
-            if (txDateStr === todayStr) {
-              todaySum += Number(tx.total) || 0;
-            }
-          }
-        }
-
-        setMetrics({
-          todaySales: todaySum,
-          completedCount: completed,
-          avgTicket: completed > 0 ? completedTotal / completed : 0,
-        });
-      }
-    } catch (e) {
-      console.error("Error fetching transaction metrics:", e);
+    if (!currentStore?.id) {
+      setMetrics({ todaySales: 0, completedCount: 0, avgTicket: 0 });
+      return;
     }
-  }, []);
+    const m = await fetchTransactionMetrics(currentStore.id);
+    setMetrics(m);
+  }, [currentStore?.id]);
 
   const columns: Column<TransactionItem>[] = [
     {
@@ -153,12 +136,12 @@ export const TransactionsPage: React.FC = () => {
     },
   ];
 
+  // Load detail when a transaction is selected
   useEffect(() => {
     if (!selectedTx) {
       setTxDetail(null);
       return;
     }
-
     let isMounted = true;
     fetchTransactionDetailFromSupabase(
       selectedTx.order_number,
@@ -167,48 +150,40 @@ export const TransactionsPage: React.FC = () => {
       selectedTx.total,
       selectedTx.discount_percent,
     ).then((detail) => {
-      if (isMounted) {
-        setTxDetail(detail);
-      }
+      if (isMounted) setTxDetail(detail);
     });
-
     return () => {
       isMounted = false;
     };
   }, [selectedTx]);
 
   const fetchTransactions = useCallback(async () => {
+    if (!currentStore?.id) {
+      setTransactions([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-
-    const from = (currentPage - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    let query = supabase
-      .from("transactions")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false });
-
-    if (statusFilter !== "All") {
-      query = query.eq("status", statusFilter);
-    }
-
-    if (searchTerm.trim()) {
-      const term = `%${searchTerm.trim()}%`;
-      query = query.or(
-        `order_number.ilike.${term},cashier.ilike.${term},payment_method.ilike.${term}`,
-      );
-    }
-
-    const { data, count, error } = await query.range(from, to);
+    const { data, count, error } = await fetchTransactionsByStore(
+      currentStore.id,
+      {
+        page: currentPage,
+        pageSize,
+        search: searchTerm,
+        statusFilter,
+      },
+    );
 
     if (error) {
       console.error("Error fetching transactions:", error);
-    } else if (data) {
-      setTransactions(data as TransactionItem[]);
-      setTotalCount(count ?? data.length);
+    } else {
+      setTransactions(data);
+      setTotalCount(count);
     }
     setLoading(false);
-  }, [currentPage, pageSize, statusFilter, searchTerm]);
+  }, [currentStore?.id, currentPage, pageSize, statusFilter, searchTerm]);
 
   useEffect(() => {
     fetchTransactions();
@@ -223,7 +198,9 @@ export const TransactionsPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleStatusChange = (status: "All" | "Completed" | "Refunded" | "Pending") => {
+  const handleStatusChange = (
+    status: "All" | "Completed" | "Refunded" | "Pending",
+  ) => {
     setStatusFilter(status);
     setCurrentPage(1);
   };
@@ -236,7 +213,6 @@ export const TransactionsPage: React.FC = () => {
   const handleRefund = async () => {
     if (!selectedTx) return;
     try {
-      // Fetch details to restore stock
       const detail = await fetchTransactionDetailFromSupabase(
         selectedTx.order_number,
         selectedTx.id,
@@ -245,11 +221,9 @@ export const TransactionsPage: React.FC = () => {
         selectedTx.discount_percent,
       );
 
-      // Restore product stock if items are available
-      if (detail && detail.items && detail.items.length > 0) {
+      if (detail?.items?.length > 0) {
         const restorePromises = detail.items.map(async (item) => {
           if (!item.name) return;
-          // Find product by name to get current stock
           const { data: prods } = await supabase
             .from("products")
             .select("id, stock")
@@ -257,19 +231,16 @@ export const TransactionsPage: React.FC = () => {
             .limit(1);
 
           if (prods && prods.length > 0) {
-            const currentStock = prods[0].stock;
-            const restoredStock = currentStock + item.quantity;
+            const restoredStock = prods[0].stock + item.quantity;
             await supabase
               .from("products")
               .update({ stock: restoredStock })
               .eq("id", prods[0].id);
           }
         });
-
         await Promise.all(restorePromises);
       }
 
-      // Update transaction status to Refunded in Supabase
       const { error: updateError } = await supabase
         .from("transactions")
         .update({ status: "Refunded" })
@@ -281,7 +252,6 @@ export const TransactionsPage: React.FC = () => {
         return;
       }
 
-      // Refresh the list and close modal
       await fetchTransactions();
       await fetchMetrics();
       setSelectedTx(null);
@@ -292,17 +262,63 @@ export const TransactionsPage: React.FC = () => {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
+  // No store set up yet
+  if (!currentStore) {
+    return (
+      <div className="flex-1 p-6 bg-slate-50 overflow-y-auto flex items-center justify-center">
+        <Card className="max-w-md w-full text-center space-y-4 py-8">
+          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Store size={28} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">
+              No Store Selected
+            </h2>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Please set up or select a store to view transaction history and
+              sales reports.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setIsCreateStoreOpen(true)}
+            className="mx-auto"
+          >
+            Set Up Your Store
+          </Button>
+          <CreateStoreModal
+            isOpen={isCreateStoreOpen}
+            onClose={() => setIsCreateStoreOpen(false)}
+          />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Sales & Transactions
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Sales & Transactions
+            </h1>
+            <Badge
+              variant="primary"
+              size="sm"
+              className="hidden sm:inline-flex"
+            >
+              {currentStore.name}
+            </Badge>
+          </div>
           <p className="text-xs text-slate-500 mt-1">
-            Real-time ledger of completed register checkouts and digital
-            receipts
+            Transaction ledger for{" "}
+            <span className="font-semibold text-slate-700">
+              {currentStore.name}
+            </span>{" "}
+            ({currentStore.branch_code || "MAIN-01"})
           </p>
         </div>
 
@@ -322,7 +338,7 @@ export const TransactionsPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="flex flex-col justify-between">
           <span className="text-xs font-semibold text-slate-500">
-            Today's Gross Volume
+            Today's Gross Volume ({currentStore.name})
           </span>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900 font-mono">
@@ -369,7 +385,7 @@ export const TransactionsPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
           <div className="w-full sm:w-80">
             <Input
-              placeholder="Search by Order ID, Cashier, or Payment..."
+              placeholder={`Search in ${currentStore.name}...`}
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               icon={<Search size={15} />}
@@ -405,7 +421,7 @@ export const TransactionsPage: React.FC = () => {
           emptyMessage={
             <div className="py-2">
               <ReceiptText size={32} className="mx-auto text-slate-300 mb-2" />
-              No transactions match your criteria
+              No transactions found for {currentStore.name}
             </div>
           }
           pagination={{

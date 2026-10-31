@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, Badge, Button, Input, Table, type Column } from "../components";
-import { supabase } from "../services/supabaseClient";
 import {
   Search,
   Plus,
@@ -8,6 +7,7 @@ import {
   Package,
   Trash2,
   Pencil,
+  Store,
 } from "lucide-react";
 import {
   type InventoryItem,
@@ -15,8 +15,19 @@ import {
   EMPTY_FORM,
   InventoryFormModal,
 } from "../components/inventory";
+import { useStore } from "../context/StoreContext";
+import {
+  fetchProductsByStore,
+  fetchStoreMetrics,
+  addProductToStore,
+  updateProductInStore,
+  deleteProductFromStore,
+} from "../services/productService";
+import { fetchCategoriesByStore, getCategoryNames, type StoreCategory } from "../services/categoryService";
+import { CreateStoreModal } from "../components/store/CreateStoreModal";
 
 export const InventoryPage: React.FC = () => {
+  const { currentStore } = useStore();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -24,34 +35,36 @@ export const InventoryPage: React.FC = () => {
   const [pageSize, setPageSize] = useState<number>(10);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
+  const [isCreateStoreOpen, setIsCreateStoreOpen] = useState<boolean>(false);
+  const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [newProduct, setNewProduct] = useState<InventoryFormState>(EMPTY_FORM);
 
-  // Overall stock metrics across entire inventory
+  // Stock metrics for the currently accessed store
   const [metricTotalSkus, setMetricTotalSkus] = useState<number>(0);
   const [metricLowStockCount, setMetricLowStockCount] = useState<number>(0);
   const [metricTotalUnits, setMetricTotalUnits] = useState<number>(0);
 
   const fetchMetrics = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("id, stock, low_stock_threshold");
-      if (!error && data) {
-        setMetricTotalSkus(data.length);
-        const low = data.filter(
-          (p: any) => p.stock <= (p.low_stock_threshold ?? 5),
-        ).length;
-        const total = data.reduce(
-          (acc: number, p: any) => acc + (Number(p.stock) || 0),
-          0,
-        );
-        setMetricLowStockCount(low);
-        setMetricTotalUnits(total);
-      }
-    } catch (err) {
-      console.error("Error fetching inventory metrics:", err);
+    if (!currentStore?.id) {
+      setMetricTotalSkus(0);
+      setMetricLowStockCount(0);
+      setMetricTotalUnits(0);
+      return;
     }
-  }, []);
+    const metrics = await fetchStoreMetrics(currentStore.id);
+    setMetricTotalSkus(metrics.totalSkus);
+    setMetricLowStockCount(metrics.lowStockCount);
+    setMetricTotalUnits(metrics.totalUnits);
+  }, [currentStore?.id]);
+
+  const fetchCategories = useCallback(async () => {
+    if (!currentStore?.id) {
+      setCategories([]);
+      return;
+    }
+    const { data } = await fetchCategoriesByStore(currentStore.id);
+    setCategories(data);
+  }, [currentStore?.id]);
 
   const columns: Column<InventoryItem>[] = [
     {
@@ -138,33 +151,28 @@ export const InventoryPage: React.FC = () => {
     useState<InventoryFormState>(EMPTY_FORM);
 
   const fetchInventory = useCallback(async () => {
-    setLoading(true);
-
-    const from = (currentPage - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    let query = supabase
-      .from("products")
-      .select("*", { count: "exact" })
-      .order("name", { ascending: true });
-
-    if (searchTerm.trim()) {
-      const term = `%${searchTerm.trim()}%`;
-      query = query.or(
-        `name.ilike.${term},sku.ilike.${term},category.ilike.${term}`,
-      );
+    if (!currentStore?.id) {
+      setInventory([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
     }
 
-    const { data, count, error } = await query.range(from, to);
+    setLoading(true);
+    const { data, count, error } = await fetchProductsByStore(currentStore.id, {
+      page: currentPage,
+      pageSize,
+      search: searchTerm,
+    });
 
     if (error) {
-      console.error("Error fetching products:", error);
-    } else if (data) {
-      setInventory(data as InventoryItem[]);
-      setTotalCount(count ?? data.length);
+      console.error("Error fetching store products:", error);
+    } else {
+      setInventory(data);
+      setTotalCount(count);
     }
     setLoading(false);
-  }, [currentPage, pageSize, searchTerm]);
+  }, [currentStore?.id, currentPage, pageSize, searchTerm]);
 
   useEffect(() => {
     fetchInventory();
@@ -173,6 +181,10 @@ export const InventoryPage: React.FC = () => {
   useEffect(() => {
     fetchMetrics();
   }, [fetchMetrics]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   // Reset to page 1 whenever searchTerm or pageSize changes
   const handleSearchChange = (value: string) => {
@@ -187,6 +199,7 @@ export const InventoryPage: React.FC = () => {
 
   const handleAddProduct = async () => {
     if (
+      !currentStore?.id ||
       !newProduct.sku ||
       !newProduct.name ||
       !newProduct.category ||
@@ -206,12 +219,12 @@ export const InventoryPage: React.FC = () => {
       barcode: newProduct.barcode ? parseInt(newProduct.barcode, 10) : 0,
     };
 
-    const { error } = await supabase.from("products").insert([payload]);
+    const { error } = await addProductToStore(currentStore.id, payload);
 
     setSubmitting(false);
 
     if (error) {
-      console.error("Error adding product:", error);
+      console.error("Error adding product to store:", error);
       alert(`Failed to add product: ${error.message}`);
     } else {
       setIsAddOpen(false);
@@ -256,12 +269,10 @@ export const InventoryPage: React.FC = () => {
       price: parseFloat(editProduct.price) || 0,
       stock: parseInt(editProduct.stock, 10) || 0,
       low_stock_threshold: parseInt(editProduct.low_stock_threshold, 10) || 5,
+      barcode: editProduct.barcode ? parseInt(editProduct.barcode, 10) : 0,
     };
 
-    const { error } = await supabase
-      .from("products")
-      .update(payload)
-      .eq("id", editId);
+    const { error } = await updateProductInStore(editId, payload);
 
     setSubmitting(false);
 
@@ -280,7 +291,7 @@ export const InventoryPage: React.FC = () => {
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
-    const { error } = await supabase.from("products").delete().eq("id", id);
+    const { error } = await deleteProductFromStore(id);
 
     if (error) {
       console.error("Error deleting product:", error);
@@ -293,24 +304,61 @@ export const InventoryPage: React.FC = () => {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
+  // If no store is selected or set up yet
+  if (!currentStore) {
+    return (
+      <div className="flex-1 p-6 bg-slate-50 overflow-y-auto flex items-center justify-center">
+        <Card className="max-w-md w-full text-center space-y-4 py-8">
+          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Store size={28} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">No Store Selected</h2>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Please set up or select a store to start managing products, prices, and stock inventory.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setIsCreateStoreOpen(true)}
+            className="mx-auto"
+          >
+            Set Up Your Store
+          </Button>
+
+          <CreateStoreModal
+            isOpen={isCreateStoreOpen}
+            onClose={() => setIsCreateStoreOpen(false)}
+          />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Inventory & Stock
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Inventory & Stock
+            </h1>
+            <Badge variant="primary" size="sm" className="hidden sm:inline-flex">
+              {currentStore.name}
+            </Badge>
+          </div>
           <p className="text-xs text-slate-500 mt-1">
-            Manage product catalog, prices, and stock threshold alerts
+            Displaying products for store:{" "}
+            <span className="font-semibold text-slate-700">
+              {currentStore.name}
+            </span>{" "}
+            ({currentStore.branch_code || "MAIN-01"})
           </p>
         </div>
 
-        <Button
-          size="sm"
-          icon={<Plus size={16} />}
-          onClick={() => setIsAddOpen(true)}
-        >
+        <Button size="sm" icon={<Plus size={16} />} onClick={() => setIsAddOpen(true)}>
           Add Product
         </Button>
       </div>
@@ -323,7 +371,7 @@ export const InventoryPage: React.FC = () => {
           </div>
           <div>
             <span className="text-xs font-semibold text-slate-500">
-              Total SKUs
+              Total SKUs ({currentStore.name})
             </span>
             <p className="text-2xl font-extrabold text-slate-900 font-mono">
               {metricTotalSkus}
@@ -365,7 +413,7 @@ export const InventoryPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
           <div className="w-full sm:w-80">
             <Input
-              placeholder="Search by SKU, name, or category..."
+              placeholder={`Search in ${currentStore.name}...`}
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               icon={<Search size={15} />}
@@ -377,7 +425,7 @@ export const InventoryPage: React.FC = () => {
           data={inventory}
           columns={columns}
           loading={loading}
-          emptyMessage="No inventories found"
+          emptyMessage={`No products found in ${currentStore.name}`}
           pagination={{
             currentPage,
             totalPages,
@@ -394,11 +442,12 @@ export const InventoryPage: React.FC = () => {
       {/* Add Product Modal */}
       <InventoryFormModal
         isOpen={isAddOpen}
-        title="Add Product"
+        title={`Add Product to ${currentStore.name}`}
         submitLabel="Confirm Add"
         submittingText="Adding..."
         formData={newProduct}
         submitting={submitting}
+        categories={getCategoryNames(categories)}
         onClose={() => {
           setIsAddOpen(false);
           setNewProduct(EMPTY_FORM);
@@ -417,6 +466,7 @@ export const InventoryPage: React.FC = () => {
         submittingText="Saving..."
         formData={editProduct}
         submitting={submitting}
+        categories={getCategoryNames(categories)}
         onClose={() => {
           setIsEditOpen(false);
           setEditProduct(EMPTY_FORM);
@@ -427,6 +477,7 @@ export const InventoryPage: React.FC = () => {
           setEditProduct((prev) => ({ ...prev, [field]: val }))
         }
       />
+
     </div>
   );
 };

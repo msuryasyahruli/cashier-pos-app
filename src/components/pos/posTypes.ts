@@ -18,6 +18,7 @@ export interface CompletedOrderInfo {
 
 export interface TransactionItem {
   id: string;
+  store_id?: string | null;
   order_number: string;
   created_at: string;
   cashier: string;

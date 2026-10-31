@@ -1,24 +1,41 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart, type Product } from "../hooks/useCart";
-import { Input } from "../components";
+import { Button, Input } from "../components";
 import {
   ProductCard,
   CartSidebar,
   CheckoutModal,
   type CompletedOrderInfo,
 } from "../components/pos";
-import { Search, ShoppingCart } from "lucide-react";
+import { Search, ShoppingCart, Store, Plus, ArrowRight } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { saveTransactionToSupabase } from "../services/transactionStorage";
 import { useAuth } from "../context/AuthContext";
+import { useStore } from "../context/StoreContext";
+import {
+  fetchProductsByStore,
+  mapInventoryToPosProducts,
+} from "../services/productService";
+import { CreateStoreModal } from "../components/store/CreateStoreModal";
+import {
+  buildTransactionPayload,
+  rememberTransactionStore,
+} from "../services/transactionService";
 import Dropdown from "../components/Dropdown";
+import {
+  fetchCategoriesByStore,
+  getCategoryNames,
+} from "../services/categoryService";
+import { createNextOrderNumber } from "../services/orderNumberService";
 
 export const PosPage: React.FC = () => {
   const navigate = useNavigate();
+  const { currentStore } = useStore();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [isCreateStoreOpen, setIsCreateStoreOpen] = useState<boolean>(false);
   const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "qris">(
     "card",
@@ -32,31 +49,28 @@ export const PosPage: React.FC = () => {
   const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   const { profile } = useAuth();
 
   const fetchProducts = async () => {
+    if (!currentStore?.id) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-
-    let query = supabase.from("products").select("*").order("created_at");
-
-    if (selectedCategory !== "All") {
-      query = query.eq("category", selectedCategory);
-    }
-
-    if (searchQuery.trim()) {
-      query = query.or(
-        `name.ilike.%${searchQuery}%,barcode.ilike.%${searchQuery}%`,
-      );
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await fetchProductsByStore(currentStore.id, {
+      category: selectedCategory,
+      search: searchQuery,
+    });
 
     if (error) {
-      console.error("Error fetching products:", error);
-    } else if (data) {
-      setProducts(data as Product[]);
+      console.error("Error fetching POS products:", error);
+    } else {
+      setProducts(mapInventoryToPosProducts(data));
     }
     setLoading(false);
   };
@@ -64,7 +78,22 @@ export const PosPage: React.FC = () => {
   useEffect(() => {
     const timeout = setTimeout(fetchProducts, 300);
     return () => clearTimeout(timeout);
-  }, [selectedCategory, searchQuery]);
+  }, [currentStore?.id, selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    if (!currentStore?.id) {
+      setCategories([]);
+      return;
+    }
+    fetchCategoriesByStore(currentStore.id).then(({ data }) => {
+      setCategories(getCategoryNames(data));
+    });
+  }, [currentStore?.id]);
+
+  const taxRate =
+    currentStore?.default_sales_tax_rate != null
+      ? currentStore.default_sales_tax_rate / 100
+      : 0.05;
 
   const {
     items,
@@ -74,7 +103,7 @@ export const PosPage: React.FC = () => {
     discountPercent,
     setDiscountPercent,
     summary,
-  } = useCart(0.05);
+  } = useCart(taxRate);
 
   const handleOpenCheckout = () => {
     setCashTendered(summary.total.toFixed(2));
@@ -103,7 +132,7 @@ export const PosPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
+      const orderNumber = await createNextOrderNumber(currentStore?.id ?? "");
       const paymentMethodLabel =
         paymentMethod === "cash"
           ? "Cash"
@@ -112,7 +141,7 @@ export const PosPage: React.FC = () => {
             : "QRIS";
 
       // 1. Insert transaction into Supabase
-      const transactionPayload: Record<string, any> = {
+      const basePayload: Record<string, any> = {
         order_number: orderNumber,
         cashier: profile?.username || "Cashier User",
         items_count: summary.totalQuantity,
@@ -121,6 +150,12 @@ export const PosPage: React.FC = () => {
         status: "Completed",
         discount_percent: discountPercent,
       };
+
+      // Attach store_id if the column exists in the DB
+      const transactionPayload = await buildTransactionPayload(
+        basePayload,
+        currentStore?.id ?? "",
+      );
 
       let txData: any = null;
 
@@ -175,6 +210,7 @@ export const PosPage: React.FC = () => {
 
       // 4. Save detailed items info to local storage
       const txId = txData?.id || null;
+      rememberTransactionStore(txId, orderNumber, currentStore?.id ?? "");
       saveTransactionToSupabase(
         txId,
         orderNumber,
@@ -214,6 +250,38 @@ export const PosPage: React.FC = () => {
     window.print();
   };
 
+  // If no store is selected or set up
+  if (!currentStore) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-100">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-md w-full text-center space-y-4">
+          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Store size={28} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">No Store Selected</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Please set up or select a store to start taking orders and accessing the POS terminal.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setIsCreateStoreOpen(true)}
+            className="mx-auto"
+          >
+            Set Up Your Store
+          </Button>
+
+          <CreateStoreModal
+            isOpen={isCreateStoreOpen}
+            onClose={() => setIsCreateStoreOpen(false)}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col sm:flex-row h-full overflow-hidden bg-slate-100">
       {/* Left Area: Catalog & Product Search */}
@@ -223,7 +291,7 @@ export const PosPage: React.FC = () => {
           {/* Search Box */}
           <div className="w-full lg:w-72">
             <Input
-              placeholder="Search products or scan barcode..."
+              placeholder={`Search in ${currentStore.name}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               icon={<Search size={15} />}
@@ -237,20 +305,10 @@ export const PosPage: React.FC = () => {
             size="sm"
             items={[
               { label: "All", onClick: () => setSelectedCategory("All") },
-              {
-                label: "Coffee",
-                onClick: () => setSelectedCategory("Coffee"),
-              },
-              { label: "Tea", onClick: () => setSelectedCategory("Tea") },
-              {
-                label: "Bakery",
-                onClick: () => setSelectedCategory("Bakery"),
-              },
-              { label: "Food", onClick: () => setSelectedCategory("Food") },
-              {
-                label: "Beverage",
-                onClick: () => setSelectedCategory("Beverage"),
-              },
+              ...categories.map((category) => ({
+                label: category,
+                onClick: () => setSelectedCategory(category),
+              })),
             ]}
           />
         </div>
@@ -260,14 +318,28 @@ export const PosPage: React.FC = () => {
           {loading ? (
             <div className="h-64 flex flex-col items-center justify-center text-slate-400">
               <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-              <p className="text-xs font-medium">Loading products...</p>
+              <p className="text-xs font-medium">Loading products for {currentStore.name}...</p>
             </div>
           ) : products.length === 0 ? (
-            <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-center p-4">
-              <p className="font-semibold text-slate-600">No products found</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                Try selecting a different category or clearing your search term.
+            <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-center p-6 bg-white rounded-2xl border border-dashed border-slate-200">
+              <Store size={32} className="text-slate-300 mb-2" />
+              <p className="font-semibold text-slate-700">
+                No products found in {currentStore.name}
               </p>
+              <p className="text-xs text-slate-400 mt-1 max-w-xs">
+                {searchQuery || selectedCategory !== "All"
+                  ? "Try adjusting your filter or search query."
+                  : "Start by adding products to this store in Inventory."}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="mt-4"
+                icon={<ArrowRight size={14} />}
+                onClick={() => navigate("/inventory")}
+              >
+                Go to Inventory
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">

@@ -19,8 +19,6 @@ export interface InventoryFormState {
   barcode: string;
 }
 
-export const CATEGORIES = ["Coffee", "Tea", "Bakery", "Food", "Beverage"];
-
 export const EMPTY_FORM: InventoryFormState = {
   sku: "",
   name: "",

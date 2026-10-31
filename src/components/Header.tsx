@@ -2,7 +2,7 @@ import React from "react";
 import { useDateTime } from "../hooks/useDateTime";
 import { Clock, Calendar, Bell, Search, Wifi, Menu } from "lucide-react";
 import { Badge } from "./Badge";
-import { useStoreSettings } from "../hooks";
+import { StoreSelector } from "./store/StoreSelector";
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -10,7 +10,6 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { time, date } = useDateTime();
-  const { store } = useStoreSettings();
 
   return (
     <header className="h-16 bg-white border-b border-slate-200/80 px-4 md:px-6 flex items-center justify-between shrink-0 shadow-sm z-30">
@@ -27,13 +26,17 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         </button>
 
         <div className="flex items-center gap-2">
-          <Badge variant="success" size="sm" className="font-semibold gap-1.5">
+          <Badge
+            variant="success"
+            size="sm"
+            className="font-semibold gap-1.5 hidden sm:inline-flex"
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Online
           </Badge>
-          <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-            {store?.name}
-          </span>
+
+          {/* Interactive store switcher & current store badge */}
+          <StoreSelector />
         </div>
       </div>
 

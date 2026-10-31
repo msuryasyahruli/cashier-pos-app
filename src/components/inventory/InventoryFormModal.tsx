@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal, Button, Input } from "../";
-import { CATEGORIES, type InventoryFormState } from "./inventoryTypes";
+import { type InventoryFormState } from "./inventoryTypes";
 
 interface InventoryFormModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface InventoryFormModalProps {
   onClose: () => void;
   onSubmit: () => void;
   onChangeField: (field: keyof InventoryFormState, value: string) => void;
+  categories?: string[];
 }
 
 export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
@@ -24,7 +25,9 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
   onClose,
   onSubmit,
   onChangeField,
+  categories = [],
 }) => {
+  const categoryOptions = categories;
   const isSubmitDisabled =
     submitting ||
     !formData.sku ||
@@ -76,7 +79,7 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
             onChange={(e) => onChangeField("category", e.target.value)}
           >
             <option value="">Select category</option>
-            {CATEGORIES.map((category) => (
+            {categoryOptions.map((category) => (
               <option key={category} value={category}>
                 {category}
               </option>
@@ -104,7 +107,9 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
             placeholder="Low Stock Threshold"
             type="number"
             value={formData.low_stock_threshold}
-            onChange={(e) => onChangeField("low_stock_threshold", e.target.value)}
+            onChange={(e) =>
+              onChangeField("low_stock_threshold", e.target.value)
+            }
           />
         </div>
       </form>
