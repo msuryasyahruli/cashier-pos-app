@@ -24,6 +24,8 @@ interface CheckoutModalProps {
   isProcessing: boolean;
   errorMessage: string | null;
   cashierName?: string;
+  storeName?: string;
+  receiptFooterNote?: string;
   onClose: () => void;
   onCloseAndReset: () => void;
   onNavigateToTransactions: () => void;
@@ -43,6 +45,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isProcessing,
   errorMessage,
   cashierName = "Cashier User",
+  storeName = "Store",
+  receiptFooterNote,
   onClose,
   onCloseAndReset,
   onNavigateToTransactions,
@@ -146,7 +150,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </div>
 
           {/* Receipt Card */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 space-y-3 font-mono text-xs">
+          <div className="receipt-print-content bg-slate-50 rounded-xl p-4 border border-slate-200/80 space-y-3 font-mono text-xs">
+            <div className="text-center pb-2 border-b border-dashed border-slate-300">
+              <h4 className="font-bold text-base text-slate-900">{storeName}</h4>
+              <p className="text-[10px] text-slate-500 font-sans">Sales Receipt</p>
+            </div>
             <div className="flex justify-between items-center pb-2 border-b border-dashed border-slate-300">
               <div>
                 <span className="font-bold text-slate-800">
@@ -220,6 +228,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </>
               )}
             </div>
+            {receiptFooterNote && (
+              <p className="text-center text-[10px] text-slate-500 font-sans pt-1">
+                {receiptFooterNote}
+              </p>
+            )}
           </div>
         </div>
       ) : (

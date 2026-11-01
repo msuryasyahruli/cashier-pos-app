@@ -16,6 +16,8 @@ import { formatDate } from "../../utils/transactionHelpers";
 interface TransactionDetailModalProps {
   selectedTx: TransactionItem | null;
   txDetail: StoredTransactionDetail | null;
+  storeName?: string;
+  receiptFooterNote?: string;
   onClose: () => void;
   onRefund: () => void;
 }
@@ -23,6 +25,8 @@ interface TransactionDetailModalProps {
 export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   selectedTx,
   txDetail,
+  storeName = "Store",
+  receiptFooterNote,
   onClose,
   onRefund,
 }) => {
@@ -38,7 +42,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             size="sm"
             onClick={() => window.print()}
             icon={<Printer size={15} />}
-            disabled={!selectedTx}
+            disabled={!selectedTx || !txDetail}
           >
             Print Receipt
           </Button>
@@ -68,7 +72,11 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             </div>
           ) : (
             <>
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3 font-mono text-xs">
+              <div className="receipt-print-content p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3 font-mono text-xs">
+                <div className="text-center pb-2 border-b border-dashed border-slate-300">
+                  <h4 className="font-bold text-base text-slate-900">{storeName}</h4>
+                  <p className="text-[10px] text-slate-500 font-sans">Sales Receipt</p>
+                </div>
                 {/* Order Header */}
                 <div className="flex justify-between items-start pb-3 border-b border-dashed border-slate-300">
                   <div>
@@ -193,6 +201,12 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       </div>
                     )}
                 </div>
+
+                {receiptFooterNote && (
+                  <p className="text-center text-[10px] text-slate-500 font-sans pt-1">
+                    {receiptFooterNote}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-800 text-xs">

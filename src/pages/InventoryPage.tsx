@@ -23,7 +23,11 @@ import {
   updateProductInStore,
   deleteProductFromStore,
 } from "../services/productService";
-import { fetchCategoriesByStore, getCategoryNames, type StoreCategory } from "../services/categoryService";
+import {
+  fetchCategoriesByStore,
+  getCategoryNames,
+  type StoreCategory,
+} from "../services/categoryService";
 import { CreateStoreModal } from "../components/store/CreateStoreModal";
 
 export const InventoryPage: React.FC = () => {
@@ -313,9 +317,12 @@ export const InventoryPage: React.FC = () => {
             <Store size={28} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800">No Store Selected</h2>
+            <h2 className="text-lg font-bold text-slate-800">
+              No Store Selected
+            </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Please set up or select a store to start managing products, prices, and stock inventory.
+              Please set up or select a store to start managing products,
+              prices, and stock inventory.
             </p>
           </div>
           <Button
@@ -345,7 +352,11 @@ export const InventoryPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               Inventory & Stock
             </h1>
-            <Badge variant="primary" size="sm" className="hidden sm:inline-flex">
+            <Badge
+              variant="primary"
+              size="sm"
+              className="hidden sm:inline-flex"
+            >
               {currentStore.name}
             </Badge>
           </div>
@@ -358,7 +369,11 @@ export const InventoryPage: React.FC = () => {
           </p>
         </div>
 
-        <Button size="sm" icon={<Plus size={16} />} onClick={() => setIsAddOpen(true)}>
+        <Button
+          size="sm"
+          icon={<Plus size={16} />}
+          onClick={() => setIsAddOpen(true)}
+        >
           Add Product
         </Button>
       </div>
@@ -461,7 +476,7 @@ export const InventoryPage: React.FC = () => {
       {/* Edit Product Modal */}
       <InventoryFormModal
         isOpen={isEditOpen}
-        title="Edit Product"
+        title={`Edit ${editProduct.name}`}
         submitLabel="Save Changes"
         submittingText="Saving..."
         formData={editProduct}
@@ -477,7 +492,6 @@ export const InventoryPage: React.FC = () => {
           setEditProduct((prev) => ({ ...prev, [field]: val }))
         }
       />
-
     </div>
   );
 };

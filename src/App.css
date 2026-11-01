@@ -1,2 +1,66 @@
 /* App-level specific styles */
 
+@media print {
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .receipt-print-content,
+  .receipt-print-content * {
+    visibility: visible !important;
+  }
+
+  .receipt-print-content {
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    width: 80mm !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 6mm !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #111827 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Remove the modal's transformed, scrollable containers from the print
+     layout so long receipts are not clipped after the first few products. */
+  body .fixed.inset-0 {
+    /* display: block !important; */
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  body .fixed.inset-0 > div {
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body .fixed.inset-0 > div > div {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
+

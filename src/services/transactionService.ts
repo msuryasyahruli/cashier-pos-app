@@ -59,6 +59,10 @@ export interface FetchTransactionsOptions {
   pageSize?: number;
   search?: string;
   statusFilter?: "All" | "Completed" | "Refunded" | "Pending";
+  /** Filter transactions to a specific calendar day (YYYY-MM-DD). */
+  dateFilter?: string;
+  /** Return every matching transaction instead of applying pagination. */
+  fetchAll?: boolean;
   /** Fallback: filter by cashier name when store_id column is absent */
   cashierName?: string;
 }
@@ -96,13 +100,25 @@ export const fetchTransactionsByStore = async (
         `order_number.ilike.${term},cashier.ilike.${term},payment_method.ilike.${term}`,
       );
     }
+    if (options.dateFilter) {
+      const start = new Date(`${options.dateFilter}T00:00:00.000Z`);
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 1);
+      if (!Number.isNaN(start.getTime())) {
+        q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+      }
+    }
     return q;
   };
 
   if (hasDbColumn) {
     const from = ((options.page ?? 1) - 1) * (options.pageSize ?? 10);
     const to = from + (options.pageSize ?? 10) - 1;
-    const { data, count, error } = await buildBaseQuery(true).range(from, to);
+    const query = buildBaseQuery(true);
+    const result = options.fetchAll
+      ? await query
+      : await query.range(from, to);
+    const { data, count, error } = result;
     if (!error) return { data: (data || []) as TransactionItem[], count: count ?? 0, error: null };
     // If error is about store_id column, flip and fall through
     if (error.code === "42703" || error.message?.includes("store_id")) {
@@ -129,6 +145,14 @@ export const fetchTransactionsByStore = async (
       `order_number.ilike.${term},cashier.ilike.${term},payment_method.ilike.${term}`,
     );
   }
+  if (options.dateFilter) {
+    const start = new Date(`${options.dateFilter}T00:00:00.000Z`);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    if (!Number.isNaN(start.getTime())) {
+      q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+    }
+  }
 
   const { data, error } = await q;
   if (error) return { data: [], count: 0, error };
@@ -137,10 +161,9 @@ export const fetchTransactionsByStore = async (
     belongsToStore(tx, storeId, getTransactionStoreMap()),
   );
   const from = ((options.page ?? 1) - 1) * (options.pageSize ?? 10);
-  const pagedTransactions = storeTransactions.slice(
-    from,
-    from + (options.pageSize ?? 10),
-  );
+  const pagedTransactions = options.fetchAll
+    ? storeTransactions
+    : storeTransactions.slice(from, from + (options.pageSize ?? 10));
 
   return {
     data: pagedTransactions,
@@ -151,14 +174,14 @@ export const fetchTransactionsByStore = async (
 
 export interface TransactionMetrics {
   todaySales: number;
+  yesterdaySales: number;
   completedCount: number;
-  avgTicket: number;
 }
 
 export const fetchTransactionMetrics = async (
   storeId: string,
 ): Promise<TransactionMetrics> => {
-  const empty = { todaySales: 0, completedCount: 0, avgTicket: 0 };
+  const empty = { todaySales: 0, yesterdaySales: 0, completedCount: 0 };
   if (!storeId) return empty;
 
   try {
@@ -175,25 +198,29 @@ export const fetchTransactionMetrics = async (
       : data.filter((tx) =>
           belongsToStore(tx, storeId, getTransactionStoreMap()),
         )) as Array<Pick<TransactionItem, "id" | "order_number" | "total" | "status" | "created_at">>;
-    const todayStr = new Date().toISOString().split("T")[0];
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    const yesterday = new Date(today);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
     let todaySum = 0;
+    let yesterdaySum = 0;
     let completed = 0;
-    let completedTotal = 0;
 
     for (const tx of transactions) {
       const isCompleted = tx.status === "Completed";
       const txDate = tx.created_at ? tx.created_at.split("T")[0] : "";
       if (isCompleted) {
         completed++;
-        completedTotal += Number(tx.total) || 0;
         if (txDate === todayStr) todaySum += Number(tx.total) || 0;
+        if (txDate === yesterdayStr) yesterdaySum += Number(tx.total) || 0;
       }
     }
 
     return {
       todaySales: todaySum,
+      yesterdaySales: yesterdaySum,
       completedCount: completed,
-      avgTicket: completed > 0 ? completedTotal / completed : 0,
     };
   } catch (e) {
     console.error("Error fetching transaction metrics:", e);

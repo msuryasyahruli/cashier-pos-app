@@ -132,7 +132,7 @@ export const PosPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      const orderNumber = await createNextOrderNumber(currentStore?.id ?? "");
+      let orderNumber = await createNextOrderNumber(currentStore?.id ?? "");
       const paymentMethodLabel =
         paymentMethod === "cash"
           ? "Cash"
@@ -158,33 +158,48 @@ export const PosPage: React.FC = () => {
       );
 
       let txData: any = null;
+      let insertPayload = { ...transactionPayload };
 
-      const { data: insertedData, error: txError } = await supabase
-        .from("transactions")
-        .insert([transactionPayload])
-        .select()
-        .single();
-
-      if (txError) {
-        console.warn(
-          "Retrying transaction insert without discount_percent field...",
-        );
-        const fallbackPayload = { ...transactionPayload };
-        delete fallbackPayload.discount_percent;
-
-        const fallbackRes = await supabase
+      // Retry a few times if another checkout already used the generated
+      // order number. This protects concurrent tabs and stale local counters.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const { data: insertedData, error: txError } = await supabase
           .from("transactions")
-          .insert([fallbackPayload])
+          .insert([insertPayload])
           .select()
           .single();
-        if (fallbackRes.error) {
-          throw new Error(
-            `Failed to save transaction: ${fallbackRes.error.message}`,
-          );
+
+        if (!txError) {
+          txData = insertedData;
+          break;
         }
-        txData = fallbackRes.data;
-      } else {
-        txData = insertedData;
+
+        const isDuplicateOrderNumber =
+          txError.code === "23505" &&
+          (txError.message?.includes("order_number") ||
+            txError.message?.includes("transactions_order_number_key"));
+
+        if (isDuplicateOrderNumber && attempt < 4) {
+          orderNumber = await createNextOrderNumber(currentStore?.id ?? "");
+          insertPayload = { ...insertPayload, order_number: orderNumber };
+          continue;
+        }
+
+        if (insertPayload.discount_percent !== undefined) {
+          console.warn(
+            "Retrying transaction insert without discount_percent field...",
+          );
+          const fallbackPayload = { ...insertPayload };
+          delete fallbackPayload.discount_percent;
+          insertPayload = fallbackPayload;
+          continue;
+        }
+
+        throw new Error(`Failed to save transaction: ${txError.message}`);
+      }
+
+      if (!txData) {
+        throw new Error("Failed to save transaction after multiple attempts.");
       }
 
       // 2. Decrement stock for each purchased item
@@ -405,6 +420,8 @@ export const PosPage: React.FC = () => {
         isProcessing={isProcessing}
         errorMessage={errorMessage}
         cashierName={profile?.username || "Cashier User"}
+        storeName={currentStore.name}
+        receiptFooterNote={currentStore.receipt_footer_note}
         onClose={() => setIsCheckoutOpen(false)}
         onCloseAndReset={handleCloseAndReset}
         onNavigateToTransactions={() => navigate("/transactions")}

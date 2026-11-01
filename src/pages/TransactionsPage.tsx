@@ -41,6 +41,10 @@ export const TransactionsPage: React.FC = () => {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
+  const [exportDate, setExportDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [exporting, setExporting] = useState(false);
   const [selectedTx, setSelectedTx] = useState<TransactionItem | null>(null);
   const [txDetail, setTxDetail] = useState<StoredTransactionDetail | null>(
     null,
@@ -50,13 +54,13 @@ export const TransactionsPage: React.FC = () => {
   // Store-scoped metrics
   const [metrics, setMetrics] = useState({
     todaySales: 0,
+    yesterdaySales: 0,
     completedCount: 0,
-    avgTicket: 0,
   });
 
   const fetchMetrics = useCallback(async () => {
     if (!currentStore?.id) {
-      setMetrics({ todaySales: 0, completedCount: 0, avgTicket: 0 });
+      setMetrics({ todaySales: 0, yesterdaySales: 0, completedCount: 0 });
       return;
     }
     const m = await fetchTransactionMetrics(currentStore.id);
@@ -210,6 +214,29 @@ export const TransactionsPage: React.FC = () => {
     setCurrentPage(1);
   };
 
+  const handleExport = async () => {
+    if (!currentStore?.id || !exportDate) return;
+
+    setExporting(true);
+    const { data, error } = await fetchTransactionsByStore(currentStore.id, {
+      dateFilter: exportDate,
+      fetchAll: true,
+      pageSize: 1000,
+      search: searchTerm,
+      statusFilter,
+    });
+
+    if (error) {
+      console.error("Error fetching transactions for export:", error);
+      alert("Unable to export transactions for the selected day.");
+    } else if (data.length === 0) {
+      alert("No transactions found for the selected day.");
+    } else {
+      exportTransactionsCSV(data, exportDate, currentStore.name);
+    }
+    setExporting(false);
+  };
+
   const handleRefund = async () => {
     if (!selectedTx) return;
     try {
@@ -261,6 +288,14 @@ export const TransactionsPage: React.FC = () => {
   };
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const revenueChange =
+    metrics.yesterdaySales > 0
+      ? ((metrics.todaySales - metrics.yesterdaySales) /
+          metrics.yesterdaySales) *
+        100
+      : metrics.todaySales > 0
+        ? null
+        : 0;
 
   // No store set up yet
   if (!currentStore) {
@@ -322,14 +357,22 @@ export const TransactionsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+          <Input
+            label="Sales day"
+            type="date"
+            value={exportDate}
+            onChange={(e) => setExportDate(e.target.value)}
+            className="min-w-40"
+          />
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportTransactionsCSV(transactions)}
+            onClick={handleExport}
+            disabled={exporting || !exportDate}
             icon={<Download size={15} />}
           >
-            Export CSV
+            {exporting ? "Exporting..." : "Export CSV"}
           </Button>
         </div>
       </div>
@@ -366,14 +409,22 @@ export const TransactionsPage: React.FC = () => {
 
         <Card className="flex flex-col justify-between">
           <span className="text-xs font-semibold text-slate-500">
-            Average Ticket Size
+            Revenue vs Yesterday
           </span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-slate-900 font-mono">
-              ${metrics.avgTicket.toFixed(2)}
+            <span
+              className={`text-2xl font-extrabold font-mono ${
+                revenueChange === null || revenueChange >= 0
+                  ? "text-emerald-600"
+                  : "text-rose-600"
+              }`}
+            >
+              {revenueChange === null
+                ? "New"
+                : `${revenueChange >= 0 ? "+" : ""}${revenueChange.toFixed(1)}%`}
             </span>
             <span className="text-xs text-slate-400 font-medium">
-              per order
+              Yesterday: ${metrics.yesterdaySales.toFixed(2)}
             </span>
           </div>
         </Card>
@@ -441,6 +492,8 @@ export const TransactionsPage: React.FC = () => {
       <TransactionDetailModal
         selectedTx={selectedTx}
         txDetail={txDetail}
+        storeName={currentStore.name}
+        receiptFooterNote={currentStore.receipt_footer_note}
         onClose={() => setSelectedTx(null)}
         onRefund={handleRefund}
       />
