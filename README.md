@@ -11,6 +11,26 @@ A modern, responsive Point of Sale application built with React, TypeScript, and
 - **Responsive Design**: Seamless experience across desktop and mobile devices.
 - **Theme Customization**: Light and Dark mode support.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="screenshots/home-notebill.web.id.png" alt="Point of sale" width="280" /></td>
+    <td><img src="screenshots/order-items-notebill.web.id.png" alt="Order items" width="280" /></td>
+    <td><img src="screenshots/payment-notebill.web.id.png" alt="Payment" width="280" /></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/bill-receipt-notebill.web.id.png" alt="Bill receipt" width="280" /></td>
+    <td><img src="screenshots/invetories-notebill.web.id.png" alt="Inventory" width="280" /></td>
+    <td><img src="screenshots/transactions-notebill.web.id.png" alt="Transactions" width="280" /></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/detail-bills-notebill.web.id.png" alt="Transaction details" width="280" /></td>
+    <td><img src="screenshots/settings-notebill.web.id.png" alt="Settings" width="280" /></td>
+    <td></td>
+  </tr>
+</table>
+
 ## Getting Started
 
 ### Prerequisites
