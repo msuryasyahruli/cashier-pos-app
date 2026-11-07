@@ -6,6 +6,7 @@ import {
   TransactionsPage,
   InventoryPage,
   SettingsPage,
+  ProfilePage,
   NotFoundPage,
   LoginPage,
 } from "../../pages";
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
       {
         path: "settings",
         element: <SettingsPage />,
+      },
+      {
+        path: "profile",
+        element: <ProfilePage />,
       },
       {
         path: "*",

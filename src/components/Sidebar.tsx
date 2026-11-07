@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutGrid,
   Receipt,
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Logo } from "./Logo";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 export interface SidebarProps {
   isOpenMobile?: boolean;
@@ -20,7 +21,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile = false,
   onCloseMobile,
 }) => {
+  const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const [isLogoutConfirmationOpen, setIsLogoutConfirmationOpen] = React.useState(false);
+  const [logoutSubmitting, setLogoutSubmitting] = React.useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
   const userName =
     profile?.name ||
     profile?.username ||
@@ -31,7 +36,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const userInitials = userName.slice(0, 2).toUpperCase();
 
   const handleLogout = async () => {
+    setLogoutSubmitting(true);
     await signOut();
+    setLogoutSubmitting(false);
+    setIsLogoutConfirmationOpen(false);
   };
 
   const navItems = [
@@ -119,9 +127,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Cashier user session card */}
-        <div className="p-3 xl:p-4 border-t border-slate-800">
+        <div className="relative p-3 xl:p-4 border-t border-slate-800">
+          {isProfileMenuOpen && (
+            <div className="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-xl border border-slate-700 bg-slate-800 shadow-xl xl:left-4 xl:right-4">
+              <div className="border-b border-slate-700 px-3 py-2.5 md:hidden xl:block">
+                <p className="truncate text-xs font-semibold text-white">{userName}</p>
+                <p className="truncate text-[10px] text-slate-400">{user?.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  navigate("/profile");
+                  onCloseMobile?.();
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-slate-200 transition-colors hover:bg-slate-700"
+              >
+                <Settings size={15} /> Profile Settings
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  setIsLogoutConfirmationOpen(true);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/10"
+              >
+                <LogOut size={15} /> Log Out
+              </button>
+            </div>
+          )}
           <div className="bg-slate-800/60 rounded-xl p-2.5 xl:p-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 min-w-0 md:justify-center xl:justify-start w-full">
+            <button
+              type="button"
+              onClick={() => setIsProfileMenuOpen((open) => !open)}
+              aria-expanded={isProfileMenuOpen}
+              aria-label="Open profile menu"
+              className="flex items-center gap-3 min-w-0 md:justify-center xl:justify-start w-full text-left"
+            >
               <div
                 title={`${userName} (Active Session)`}
                 className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 font-semibold flex items-center justify-center text-xs border border-indigo-500/30 shrink-0"
@@ -137,17 +180,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {userRole}
                 </p>
               </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              title="Logout / End Shift"
-              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors md:hidden xl:block"
-            >
-              <LogOut size={16} />
             </button>
           </div>
         </div>
       </aside>
+      <ConfirmationModal
+        isOpen={isLogoutConfirmationOpen}
+        title="Log Out"
+        message="Are you sure you want to log out and end this cashier session?"
+        confirmLabel="Log Out"
+        loading={logoutSubmitting}
+        onClose={() => {
+          if (!logoutSubmitting) setIsLogoutConfirmationOpen(false);
+        }}
+        onConfirm={handleLogout}
+      />
     </>
   );
 };

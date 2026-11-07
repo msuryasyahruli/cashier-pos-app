@@ -431,7 +431,7 @@ export const TransactionsPage: React.FC = () => {
       </div>
 
       {/* Table & Filters Card */}
-      <Card className="space-y-4">
+      <Card>
         {/* Filters bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
           <div className="w-full sm:w-80">

@@ -203,7 +203,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
               </div>
             )}
             <div className="flex justify-between">
-              <span>Estimated Tax (5%)</span>
+              <span>Estimated Tax ({summary.taxRate * 100}%)</span>
               <span className="font-mono font-semibold">
                 ${summary.taxAmount.toFixed(2)}
               </span>

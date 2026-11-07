@@ -3,6 +3,7 @@ export * from './Badge';
 export * from './Card';
 export * from './Input';
 export * from './Modal';
+export * from './ConfirmationModal';
 export * from './Sidebar';
 export * from './Header';
 export * from './Table';

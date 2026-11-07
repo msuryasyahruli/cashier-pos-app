@@ -60,6 +60,7 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
       >
         <div>
           <Input
+            label="SKU"
             placeholder="SKU (e.g. COF-003)"
             value={formData.sku}
             onChange={(e) => onChangeField("sku", e.target.value)}
@@ -67,12 +68,16 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
         </div>
         <div>
           <Input
+            label="Product Name"
             placeholder="Product Name"
             value={formData.name}
             onChange={(e) => onChangeField("name", e.target.value)}
           />
         </div>
         <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-600">
+            Category
+          </label>
           <select
             className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             value={formData.category}
@@ -88,6 +93,7 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
         </div>
         <div>
           <Input
+            label="Price"
             placeholder="Price"
             type="number"
             value={formData.price}
@@ -96,6 +102,7 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
         </div>
         <div>
           <Input
+            label="Stock Quantity"
             placeholder="Stock"
             type="number"
             value={formData.stock}
@@ -104,12 +111,22 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
         </div>
         <div>
           <Input
+            label="Low Stock Threshold"
             placeholder="Low Stock Threshold"
             type="number"
             value={formData.low_stock_threshold}
             onChange={(e) =>
               onChangeField("low_stock_threshold", e.target.value)
             }
+          />
+        </div>
+        <div>
+          <Input
+            label="Barcode"
+            placeholder="Barcode (optional)"
+            type="number"
+            value={formData.barcode}
+            onChange={(e) => onChangeField("barcode", e.target.value)}
           />
         </div>
       </form>

@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Card, Badge, Button, Input, Table, type Column } from "../components";
+import {
+  Card,
+  Badge,
+  Button,
+  Input,
+  Table,
+  ConfirmationModal,
+  type Column,
+} from "../components";
 import {
   Search,
   Plus,
@@ -42,6 +50,8 @@ export const InventoryPage: React.FC = () => {
   const [isCreateStoreOpen, setIsCreateStoreOpen] = useState<boolean>(false);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [newProduct, setNewProduct] = useState<InventoryFormState>(EMPTY_FORM);
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   // Stock metrics for the currently accessed store
   const [metricTotalSkus, setMetricTotalSkus] = useState<number>(0);
@@ -141,7 +151,7 @@ export const InventoryPage: React.FC = () => {
             variant="danger"
             size="sm"
             icon={<Trash2 size={15} />}
-            onClick={() => handleDeleteProduct(item.id)}
+            onClick={() => setDeleteProductId(item.id)}
           />
         </>
       ),
@@ -293,14 +303,15 @@ export const InventoryPage: React.FC = () => {
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
+    setDeleteSubmitting(true);
     const { error } = await deleteProductFromStore(id);
+    setDeleteSubmitting(false);
 
     if (error) {
       console.error("Error deleting product:", error);
       alert(`Failed to delete product: ${error.message}`);
     } else {
+      setDeleteProductId(null);
       fetchInventory();
       fetchMetrics();
     }
@@ -471,6 +482,20 @@ export const InventoryPage: React.FC = () => {
         onChangeField={(field, val) =>
           setNewProduct((prev) => ({ ...prev, [field]: val }))
         }
+      />
+
+      <ConfirmationModal
+        isOpen={deleteProductId !== null}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        confirmLabel="Delete Product"
+        loading={deleteSubmitting}
+        onClose={() => {
+          if (!deleteSubmitting) setDeleteProductId(null);
+        }}
+        onConfirm={async () => {
+          if (deleteProductId) await handleDeleteProduct(deleteProductId);
+        }}
       />
 
       {/* Edit Product Modal */}

@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Input } from "../components";
+import { Card, Button, Input, ConfirmationModal } from "../components";
 import {
   Save,
   Loader2,
   AlertCircle,
   CheckCircle2,
-  User,
   Store,
   Plus,
   Tags,
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useStoreSettings, useUserSettings } from "../hooks";
+import { useStoreSettings } from "../hooks";
 import { CreateStoreModal } from "../components/store/CreateStoreModal";
 import { CategoryCreateModal } from "../components/inventory";
 import {
@@ -36,15 +35,6 @@ export const SettingsPage: React.FC = () => {
     selectStore,
   } = useStoreSettings();
 
-  const {
-    userSettings,
-    loading: userLoading,
-    saving: userSaving,
-    error: userError,
-    success: userSuccess,
-    updateUser,
-  } = useUserSettings();
-
   const [isCreateStoreModalOpen, setIsCreateStoreModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categorySubmitting, setCategorySubmitting] = useState(false);
@@ -52,6 +42,8 @@ export const SettingsPage: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<StoreCategory | null>(
     null,
   );
+  const [deleteCategory, setDeleteCategory] = useState<StoreCategory | null>(null);
+  const [deleteCategorySubmitting, setDeleteCategorySubmitting] = useState(false);
 
   // Store form state
   const [name, setName] = useState("");
@@ -64,10 +56,6 @@ export const SettingsPage: React.FC = () => {
   const [newBranchCode, setNewBranchCode] = useState("");
   const [newReceiptFooter, setNewReceiptFooter] = useState("");
   const [newTaxRate, setNewTaxRate] = useState("5.0");
-
-  // User form state
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
 
   // Sync store state
   useEffect(() => {
@@ -82,14 +70,6 @@ export const SettingsPage: React.FC = () => {
       );
     }
   }, [store]);
-
-  // Sync user state
-  useEffect(() => {
-    if (userSettings) {
-      setUsername(userSettings.username ?? "");
-      setEmail(userSettings.email ?? "");
-    }
-  }, [userSettings]);
 
   useEffect(() => {
     if (!store?.id) {
@@ -117,13 +97,6 @@ export const SettingsPage: React.FC = () => {
       branch_code: newBranchCode.trim() || undefined,
       receipt_footer_note: newReceiptFooter.trim() || undefined,
       default_sales_tax_rate: parseFloat(newTaxRate) || 0,
-    });
-  };
-
-  const handleSaveUser = async () => {
-    await updateUser({
-      username,
-      email,
     });
   };
 
@@ -168,13 +141,9 @@ export const SettingsPage: React.FC = () => {
   const handleDeleteCategory = async (category: StoreCategory) => {
     if (!store?.id || !category.store_id || category.store_id !== store.id)
       return;
-    if (
-      !confirm(
-        `Delete the category "${category.name}"? Products using it will keep their category text.`,
-      )
-    )
-      return;
+    setDeleteCategorySubmitting(true);
     const { error } = await deleteCategoryForStore(category.id, store.id);
+    setDeleteCategorySubmitting(false);
     if (error) {
       alert(`Failed to delete category: ${error.message}`);
       return;
@@ -182,9 +151,10 @@ export const SettingsPage: React.FC = () => {
     setCategories((previous) =>
       previous.filter((item) => item.id !== category.id),
     );
+    setDeleteCategory(null);
   };
 
-  const isLoading = loading || userLoading;
+  const isLoading = loading;
 
   // Loading skeleton
   if (isLoading && !store && stores.length === 0) {
@@ -202,11 +172,10 @@ export const SettingsPage: React.FC = () => {
     <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          Terminal & Store Settings
+          Store Settings
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Configure cashier terminal, manage user profile, and customize store
-          settings
+          Manage store details, categories, and cashier terminal preferences.
         </p>
       </div>
 
@@ -223,86 +192,6 @@ export const SettingsPage: React.FC = () => {
           <span>{success}</span>
         </div>
       )}
-
-      {/* User status messages */}
-      {userError && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <AlertCircle size={16} className="shrink-0" />
-          <span>{userError}</span>
-        </div>
-      )}
-      {userSuccess && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <CheckCircle2 size={16} className="shrink-0" />
-          <span>{userSuccess}</span>
-        </div>
-      )}
-
-      {/* User Profile Section */}
-      <Card className="space-y-4">
-        <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
-          <User size={14} className="text-indigo-500" />
-          User Profile
-        </h2>
-        {userSettings ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. johndoe"
-              />
-              <Input
-                label="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. john@example.com"
-                type="email"
-              />
-              <Input
-                label="Role"
-                value={userSettings.role ?? ""}
-                disabled
-                className="bg-slate-50 cursor-not-allowed"
-              />
-              <div className="w-full space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                  Status
-                </label>
-                <div className="flex items-center gap-2 px-3.5 py-2.5">
-                  <span
-                    className={`inline-block h-2 w-2 rounded-full ${
-                      userSettings.is_active ? "bg-emerald-500" : "bg-slate-400"
-                    }`}
-                  />
-                  <span className="text-sm text-slate-700">
-                    {userSettings.is_active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Button
-                icon={
-                  userSaving ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Save size={16} />
-                  )
-                }
-                onClick={handleSaveUser}
-                disabled={userSaving}
-                size="sm"
-              >
-                {userSaving ? "Saving..." : "Update Profile"}
-              </Button>
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-slate-500">User profile data not found.</p>
-        )}
-      </Card>
 
       {/* Store Information Section */}
       {store ? (
@@ -358,7 +247,7 @@ export const SettingsPage: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             icon={<Trash2 size={14} />}
-                            onClick={() => handleDeleteCategory(category)}
+                            onClick={() => setDeleteCategory(category)}
                             aria-label={`Delete ${category.name}`}
                           />
                         </div>
@@ -568,6 +457,24 @@ export const SettingsPage: React.FC = () => {
           onSubmit={handleCategorySubmit}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={deleteCategory !== null}
+        title="Delete Category"
+        message={
+          deleteCategory
+            ? `Delete “${deleteCategory.name}”? Products using it will keep their category text.`
+            : ""
+        }
+        confirmLabel="Delete Category"
+        loading={deleteCategorySubmitting}
+        onClose={() => {
+          if (!deleteCategorySubmitting) setDeleteCategory(null);
+        }}
+        onConfirm={async () => {
+          if (deleteCategory) await handleDeleteCategory(deleteCategory);
+        }}
+      />
     </div>
   );
 };
