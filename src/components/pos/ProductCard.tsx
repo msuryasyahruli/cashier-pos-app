@@ -58,7 +58,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        <h3 className="font-bold text-sm text-slate-800 line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">
+        <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">
           {product.name}
         </h3>
         <p className="text-[11px] text-slate-400 font-mono mt-1 truncate">
@@ -66,10 +66,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </p>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <span className="text-xs text-slate-400 font-medium">Price</span>
-          <p className="text-sm sm:text-base font-extrabold text-slate-900 font-mono">
+          <p className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono">
             ${product.price.toFixed(2)}
           </p>
         </div>

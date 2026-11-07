@@ -3,6 +3,7 @@ import { useDateTime } from "../hooks/useDateTime";
 import { Clock, Calendar, Bell, Search, Wifi, Menu } from "lucide-react";
 import { Badge } from "./Badge";
 import { StoreSelector } from "./store/StoreSelector";
+import { ThemeToggle } from "./ThemeToggle";
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -12,7 +13,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { time, date } = useDateTime();
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/80 px-4 md:px-6 flex items-center justify-between shrink-0 shadow-sm z-30">
+    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-700 px-4 md:px-6 flex items-center justify-between shrink-0 shadow-sm z-30">
       {/* Left: Quick search / branch title & mobile toggle */}
       <div className="flex items-center gap-3 md:gap-4">
         {/* Menu Toggle Button: visible below md breakpoint */}
@@ -65,6 +66,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button
             title="System Notifications"
             className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors relative"

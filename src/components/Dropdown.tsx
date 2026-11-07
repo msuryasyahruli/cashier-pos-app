@@ -91,7 +91,7 @@ export default function Dropdown({
         <div
           role="menu"
           className={[
-            "absolute z-50 mt-1 min-w-32 rounded-lg bg-white shadow-lg border border-gray-200 py-1 animate-fade-in",
+            "absolute z-50 mt-1 min-w-32 rounded-lg bg-white dark:bg-slate-900 shadow-lg border border-gray-200 dark:border-slate-700 py-1 animate-fade-in",
             align === "right" ? "right-0" : "left-0",
           ].join(" ")}
         >
@@ -108,8 +108,8 @@ export default function Dropdown({
               className={[
                 "w-full text-left px-4 py-2 text-sm transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed",
                 item.danger
-                  ? "text-red-600 hover:bg-red-50"
-                  : "text-gray-700 hover:bg-gray-100",
+                  ? "text-red-600 dark:text-rose-300 hover:bg-red-50 dark:hover:bg-rose-950/50"
+                  : "text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800",
               ].join(" ")}
             >
               {item.label}

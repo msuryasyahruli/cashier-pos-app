@@ -4,6 +4,7 @@ export interface CompletedOrderInfo {
   orderNumber: string;
   items: { product: Product; quantity: number }[];
   summary: {
+    taxRate: number;
     subtotal: number;
     discountAmount: number;
     taxAmount: number;

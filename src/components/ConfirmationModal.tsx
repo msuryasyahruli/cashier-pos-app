@@ -40,10 +40,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }
   >
     <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300">
         <AlertTriangle size={20} />
       </div>
-      <p className="pt-1 text-sm leading-6 text-slate-600">{message}</p>
+      <p className="pt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{message}</p>
     </div>
   </Modal>
 );

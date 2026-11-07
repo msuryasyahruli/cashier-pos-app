@@ -77,7 +77,7 @@ export function Table<T>({
       <div className={`overflow-x-auto ${className}`}>
         <table className="min-w-[800px] md:w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-50 text-slate-500 border-b border-slate-200/60 uppercase font-semibold tracking-wider">
+            <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200/60 dark:border-slate-700 uppercase font-semibold tracking-wider">
               {showRowNumber && (
                 <th className="py-3 px-4 w-12 text-center text-slate-400 font-mono">
                   #
@@ -93,7 +93,7 @@ export function Table<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-slate-700">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
             {loading ? (
               <tr>
                 <td
@@ -122,7 +122,7 @@ export function Table<T>({
               data.map((row, index) => {
                 const isOdd = index % 2 === 1;
                 const bgClass =
-                  striped && isOdd ? "bg-slate-50/60" : "bg-white";
+                  striped && isOdd ? "bg-slate-50/60 dark:bg-slate-800/60" : "bg-white dark:bg-slate-900";
 
                 return (
                   <tr
@@ -130,8 +130,8 @@ export function Table<T>({
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     className={`transition-colors ${bgClass} ${
                       onRowClick
-                        ? "hover:bg-slate-100/80 cursor-pointer"
-                        : "hover:bg-slate-50"
+                        ? "hover:bg-slate-100/80 dark:hover:bg-slate-800 cursor-pointer"
+                        : "hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                     title={onRowClick ? "Click to view details" : undefined}
                   >

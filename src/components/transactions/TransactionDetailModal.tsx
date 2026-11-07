@@ -190,7 +190,9 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
                     {txDetail.taxAmount > 0 && (
                       <div className="flex justify-between font-mono">
-                        <span className="font-sans">Est. Tax (5%)</span>
+                        <span className="font-sans">
+                          Tax ({Number(txDetail.taxRatePercent.toFixed(2))}%)
+                        </span>
                         <span>${txDetail.taxAmount.toFixed(2)}</span>
                       </div>
                     )}

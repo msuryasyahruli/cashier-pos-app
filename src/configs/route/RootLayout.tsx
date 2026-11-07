@@ -15,7 +15,7 @@ export const RootLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans">
       {/* Navigation Sidebar */}
       <Sidebar
         isOpenMobile={isMobileSidebarOpen}

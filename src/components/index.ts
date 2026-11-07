@@ -9,3 +9,4 @@ export * from './Header';
 export * from './Table';
 export * from './Pagination';
 export * from './Logo';
+export * from './ThemeToggle';

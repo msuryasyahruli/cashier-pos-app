@@ -146,6 +146,7 @@ export const PosPage: React.FC = () => {
         cashier: profile?.username || "Cashier User",
         items_count: summary.totalQuantity,
         total: parseFloat(summary.total.toFixed(2)),
+        tax_amount: parseFloat(summary.taxAmount.toFixed(2)),
         payment_method: paymentMethodLabel,
         status: "Completed",
         discount_percent: discountPercent,
@@ -182,6 +183,16 @@ export const PosPage: React.FC = () => {
         if (isDuplicateOrderNumber && attempt < 4) {
           orderNumber = await createNextOrderNumber(currentStore?.id ?? "");
           insertPayload = { ...insertPayload, order_number: orderNumber };
+          continue;
+        }
+
+        if (insertPayload.tax_amount !== undefined) {
+          console.warn(
+            "Retrying transaction insert without tax_amount; apply the tax migration to store it.",
+          );
+          const fallbackPayload = { ...insertPayload };
+          delete fallbackPayload.tax_amount;
+          insertPayload = fallbackPayload;
           continue;
         }
 

@@ -15,6 +15,7 @@ export interface StoredTransactionDetail {
   subtotal: number;
   discountAmount: number;
   taxAmount: number;
+  taxRatePercent: number;
   total: number;
   cashReceived?: number;
   changeAmount?: number;
@@ -83,7 +84,12 @@ export const fetchTransactionDetailFromSupabase = async (
       const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
       const discountAmount = subtotal * (fallbackDiscountPercent / 100);
       const taxableSubtotal = Math.max(0, subtotal - discountAmount);
-      const taxAmount = taxableSubtotal * 0.05;
+      // The transaction row's total is authoritative and already reflects the
+      // store's configured tax rate. Derive tax from it instead of reusing the
+      // discount percentage as a tax rate.
+      const taxAmount = Math.max(0, fallbackTotal - taxableSubtotal);
+      const taxRatePercent =
+        taxableSubtotal > 0 ? (taxAmount / taxableSubtotal) * 100 : 0;
 
       return {
         orderNumber,
@@ -92,6 +98,7 @@ export const fetchTransactionDetailFromSupabase = async (
         subtotal: parseFloat(subtotal.toFixed(2)),
         discountAmount: parseFloat(discountAmount.toFixed(2)),
         taxAmount: parseFloat(taxAmount.toFixed(2)),
+        taxRatePercent,
         total:
           fallbackTotal || parseFloat((taxableSubtotal + taxAmount).toFixed(2)),
       };
@@ -103,6 +110,8 @@ export const fetchTransactionDetailFromSupabase = async (
   // Fallback for older transactions created before transaction_items table existed
   const fallbackSubtotal = fallbackTotal / 1.05;
   const fallbackTax = fallbackTotal - fallbackSubtotal;
+  const fallbackTaxRatePercent =
+    fallbackSubtotal > 0 ? (fallbackTax / fallbackSubtotal) * 100 : 0;
 
   const fallbackNames = [
     "Caramel Macchiato",
@@ -137,6 +146,7 @@ export const fetchTransactionDetailFromSupabase = async (
     subtotal: parseFloat(fallbackSubtotal.toFixed(2)),
     discountAmount: 0,
     taxAmount: parseFloat(fallbackTax.toFixed(2)),
+    taxRatePercent: fallbackTaxRatePercent,
     total: fallbackTotal,
   };
 };
