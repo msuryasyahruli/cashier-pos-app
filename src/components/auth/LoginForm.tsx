@@ -40,7 +40,9 @@ export const LoginForm = () => {
       if (error.message?.includes("Invalid login")) {
         setErrorMsg("Invalid email or password.");
       } else if (error.message?.includes("Email not confirmed")) {
-        setErrorMsg("Email has not been confirmed yet. Please check your inbox.");
+        setErrorMsg(
+          "Email has not been confirmed yet. Please check your inbox.",
+        );
       } else {
         setErrorMsg(error.message ?? "Login failed. Please try again.");
       }
@@ -63,7 +65,7 @@ export const LoginForm = () => {
       <div>
         <label
           htmlFor="login-email"
-          className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider"
+          className="block text-xs font-semibold text-slate-100 mb-1.5 uppercase tracking-wider"
         >
           Email
         </label>
@@ -86,7 +88,7 @@ export const LoginForm = () => {
       <div>
         <label
           htmlFor="login-password"
-          className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider"
+          className="block text-xs font-semibold text-slate-100 mb-1.5 uppercase tracking-wider"
         >
           Password
         </label>
@@ -105,7 +107,7 @@ export const LoginForm = () => {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
+            className="text-slate-400 hover:text-slate-100 transition-colors"
             tabIndex={-1}
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}

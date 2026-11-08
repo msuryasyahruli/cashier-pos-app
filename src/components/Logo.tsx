@@ -1,184 +1,188 @@
 import React from "react";
+import notebillHorizontal from "../assets/logo-icons/notebill-1-icon-text-horizontal.svg";
+import notebillHorizontalDark from "../assets/logo-icons/notebill-1-icon-text-horizontal-dark.svg";
+import notebillHorizontalWhite from "../assets/logo-icons/notebill-4-icon-text-horizontal-white.svg";
+import notebillStacked from "../assets/logo-icons/notebill-2-icon-text-stacked.svg";
+import notebillStackedDark from "../assets/logo-icons/notebill-2-icon-text-stacked-dark.svg";
+import notebillStackedWhite from "../assets/logo-icons/notebill-5-icon-text-stacked-white.svg";
+import notebillIconGradient from "../assets/logo-icons/notebill-3-icon-only-gradient.svg";
+import notebillIconWhite from "../assets/logo-icons/notebill-6-icon-only-white.svg";
 
 export interface LogoProps {
-  /** Size variant or icon height */
+  /** Size variant or icon/logo height preset */
   size?: "sm" | "md" | "lg" | "xl";
-  /** Whether to show "note bill" wordmark alongside the emblem */
+  /** Optional custom height in pixels or CSS value (e.g. 36 or "2.25rem") */
+  height?: number | string;
+  /** Whether to show "notebill" wordmark alongside the emblem */
   showWordmark?: boolean;
   /** Layout direction when wordmark is enabled: "horizontal" or "vertical" */
   orientation?: "horizontal" | "vertical";
-  /** Color theme: "gradient" (default brand), "white" (monochrome light), or "dark" */
-  theme?: "gradient" | "white" | "dark";
+  /** Color theme:
+   * - "gradient" (default brand gradient, automatically adapts to light/dark container)
+   * - "white" (brand gradient with white text for dark containers like the sidebar)
+   * - "dark" (brand gradient with dark text for light containers)
+   * - "monochrome" (pure monochrome white logo)
+   */
+  theme?: "gradient" | "white" | "dark" | "monochrome";
   className?: string;
+  alt?: string;
 }
 
-export const LogoEmblem: React.FC<{
-  size?: number | string;
-  theme?: "gradient" | "white" | "dark";
+export interface LogoEmblemProps {
+  size?: number | string | "sm" | "md" | "lg" | "xl";
+  theme?: "gradient" | "white" | "dark" | "monochrome";
   className?: string;
-}> = ({ size = 36, theme = "gradient", className = "" }) => {
-  const gradientId = React.useId();
+  alt?: string;
+}
+
+export const LogoEmblem: React.FC<LogoEmblemProps> = ({
+  size = 36,
+  theme = "gradient",
+  className = "",
+  alt = "Notebill Emblem",
+}) => {
+  const sizeMap: Record<"sm" | "md" | "lg" | "xl", number> = {
+    sm: 28,
+    md: 36,
+    lg: 48,
+    xl: 60,
+  };
+
+  const resolvedHeight =
+    typeof size === "string" && size in sizeMap
+      ? `${sizeMap[size as keyof typeof sizeMap]}px`
+      : typeof size === "number"
+      ? `${size}px`
+      : size;
+
+  const isMonochrome = theme === "white" || theme === "monochrome";
+  const iconSrc = isMonochrome ? notebillIconWhite : notebillIconGradient;
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={`shrink-0 ${className}`}
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#0ea5e9" />
-          <stop offset="45%" stopColor="#0284c7" />
-          <stop offset="100%" stopColor="#10b981" />
-        </linearGradient>
-      </defs>
-
-      {/* Bill receipt body with folded corner and serrated bottom edge */}
-      <path
-        d="M 22 14 
-           L 62 14 
-           L 78 30 
-           L 78 82 
-           L 72 77 
-           L 66 82 
-           L 60 77 
-           L 54 82 
-           L 48 77 
-           L 42 82 
-           L 36 77 
-           L 30 82 
-           L 24 77 
-           L 22 79 
-           Z"
-        fill={
-          theme === "white"
-            ? "#ffffff"
-            : theme === "dark"
-            ? "#0f172a"
-            : `url(#${gradientId})`
-        }
-      />
-
-      {/* Top right corner fold shading */}
-      <path
-        d="M 62 14 L 62 30 L 78 30 Z"
-        fill={theme === "white" ? "#cbd5e1" : theme === "dark" ? "#334155" : "#0369a1"}
-        opacity={theme === "white" || theme === "dark" ? 0.4 : 0.45}
-      />
-
-      {/* Horizontal text bars on the bill */}
-      <rect
-        x="32"
-        y="25"
-        width="22"
-        height="4.5"
-        rx="2.25"
-        fill={theme === "white" ? "#0f172a" : "#ffffff"}
-      />
-      <rect
-        x="32"
-        y="35"
-        width="34"
-        height="4.5"
-        rx="2.25"
-        fill={theme === "white" ? "#0f172a" : "#ffffff"}
-      />
-      <rect
-        x="32"
-        y="45"
-        width="28"
-        height="4.5"
-        rx="2.25"
-        fill={theme === "white" ? "#0f172a" : "#ffffff"}
-      />
-
-      {/* Checkmark verification stroke */}
-      <path
-        d="M 45 64 L 54 73 L 75 48"
-        stroke={theme === "white" ? "#0f172a" : "#ffffff"}
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-
-      {/* Dollar currency glyph inside the checkmark notch */}
-      <text
-        x="63.5"
-        y="56"
-        fill={theme === "white" ? "#0f172a" : "#ffffff"}
-        fontSize="11.5"
-        fontWeight="800"
-        fontFamily="system-ui, -apple-system, sans-serif"
-        textAnchor="middle"
-      >
-        $
-      </text>
-    </svg>
+    <img
+      src={iconSrc}
+      alt={alt}
+      style={{ height: resolvedHeight, width: "auto" }}
+      className={`shrink-0 select-none object-contain ${className}`}
+      draggable={false}
+    />
   );
 };
 
 export const Logo: React.FC<LogoProps> = ({
   size = "md",
+  height,
   showWordmark = true,
   orientation = "horizontal",
   theme = "gradient",
   className = "",
+  alt = "Notebill POS",
 }) => {
-  const sizeMap = {
-    sm: { icon: 28, text: "text-base", sub: "text-[10px]" },
-    md: { icon: 38, text: "text-xl", sub: "text-xs" },
-    lg: { icon: 48, text: "text-2xl", sub: "text-xs" },
-    xl: { icon: 60, text: "text-3xl", sub: "text-sm" },
-  };
-
-  const currentSize = sizeMap[size];
-
-  const noteTextColor =
-    theme === "white" ? "text-white" : "text-slate-900";
-  const billTextColor =
-    theme === "white" ? "text-emerald-400" : "text-emerald-500";
-
   if (!showWordmark) {
     return (
       <LogoEmblem
-        size={currentSize.icon}
+        size={height ?? size}
         theme={theme}
         className={className}
+        alt={alt}
       />
     );
   }
 
-  if (orientation === "vertical") {
+  const horizontalSizeMap = {
+    sm: 28,
+    md: 36,
+    lg: 44,
+    xl: 56,
+  };
+
+  const verticalSizeMap = {
+    sm: 64,
+    md: 88,
+    lg: 112,
+    xl: 144,
+  };
+
+  const resolvedHeight =
+    height !== undefined
+      ? typeof height === "number"
+        ? `${height}px`
+        : height
+      : orientation === "vertical"
+      ? `${verticalSizeMap[size]}px`
+      : `${horizontalSizeMap[size]}px`;
+
+  // Monochrome pure white variant
+  if (theme === "monochrome") {
+    const src =
+      orientation === "vertical" ? notebillStackedWhite : notebillHorizontalWhite;
     return (
-      <div
-        className={`flex flex-col items-center text-center gap-2 ${className}`}
-      >
-        <LogoEmblem size={currentSize.icon} theme={theme} />
-        <div className="flex items-center gap-1.5 font-bold tracking-tight">
-          <span className={`${currentSize.text} ${noteTextColor}`}>note</span>
-          <span className={`${currentSize.text} ${billTextColor}`}>bill</span>
-        </div>
-      </div>
+      <img
+        src={src}
+        alt={alt}
+        style={{ height: resolvedHeight, width: "auto" }}
+        className={`shrink-0 select-none object-contain ${className}`}
+        draggable={false}
+      />
     );
   }
 
+  // White text variant (specifically for dark containers like Sidebar)
+  if (theme === "white") {
+    const src =
+      orientation === "vertical" ? notebillStacked : notebillHorizontal;
+    return (
+      <img
+        src={src}
+        alt={alt}
+        style={{ height: resolvedHeight, width: "auto" }}
+        className={`shrink-0 select-none object-contain ${className}`}
+        draggable={false}
+      />
+    );
+  }
+
+  // Dark text variant (specifically for light containers like LoginPage card)
+  if (theme === "dark") {
+    const src =
+      orientation === "vertical" ? notebillStackedDark : notebillHorizontalDark;
+    return (
+      <img
+        src={src}
+        alt={alt}
+        style={{ height: resolvedHeight, width: "auto" }}
+        className={`shrink-0 select-none object-contain ${className}`}
+        draggable={false}
+      />
+    );
+  }
+
+  // Default "gradient": adapts to light/dark theme automatically
+  const lightSrc =
+    orientation === "vertical" ? notebillStackedDark : notebillHorizontalDark;
+  const darkSrc =
+    orientation === "vertical" ? notebillStacked : notebillHorizontal;
+
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <LogoEmblem size={currentSize.icon} theme={theme} />
-      <div className="flex items-baseline gap-1.5 leading-none">
-        <span className={`font-extrabold tracking-tight ${currentSize.text} ${noteTextColor}`}>
-          note
-        </span>
-        <span className={`font-extrabold tracking-tight ${currentSize.text} ${billTextColor}`}>
-          bill
-        </span>
-      </div>
+    <div className={`inline-flex shrink-0 items-center justify-center ${className}`}>
+      {/* Light mode: dark wordmark for light surfaces */}
+      <img
+        src={lightSrc}
+        alt={alt}
+        style={{ height: resolvedHeight, width: "auto" }}
+        className="dark:hidden shrink-0 select-none object-contain"
+        draggable={false}
+      />
+      {/* Dark mode: white wordmark for dark surfaces */}
+      <img
+        src={darkSrc}
+        alt={alt}
+        style={{ height: resolvedHeight, width: "auto" }}
+        className="hidden dark:block shrink-0 select-none object-contain"
+        draggable={false}
+      />
     </div>
   );
 };
 
 export default Logo;
-

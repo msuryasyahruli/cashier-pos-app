@@ -20,11 +20,11 @@ export const LoginPage = () => {
   }
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-      <div className="p-8 bg-white rounded-2xl shadow-xl max-w-md w-full border border-slate-200/60">
+    <section className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-950 px-4 transition-colors">
+      <div className="p-8 bg-slate-900 rounded-2xl shadow-xl max-w-md w-full border border-slate-200/60 dark:border-slate-800">
         <div className="flex flex-col items-center mb-6">
           <Logo size="lg" orientation="vertical" />
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-slate-400 mt-2">
             Sign in to access your cashier POS terminal
           </p>
         </div>

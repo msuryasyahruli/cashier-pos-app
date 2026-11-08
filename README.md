@@ -1,4 +1,8 @@
-# note bill - Point of Sale (POS) Application
+<p align="center">
+  <img src="src/assets/logo-icons/notebill-1-icon-text-horizontal.svg" alt="Notebill Logo" width="300" />
+</p>
+
+# Notebill - Point of Sale (POS) Application
 
 A modern, responsive Point of Sale application built with React, TypeScript, and Vite. This application is designed for retail environments to manage products, process sales, and handle customer transactions efficiently.
 
