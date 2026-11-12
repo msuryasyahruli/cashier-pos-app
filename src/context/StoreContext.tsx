@@ -89,6 +89,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
 
       let loadedStores: StoreSettings[] = [];
 
+      if (fetchError) {
+        setError(fetchError.message || "Failed to load stores from server");
+      }
+
       if (!fetchError && data && data.length > 0) {
         loadedStores = data as StoreSettings[];
       } else {
@@ -250,22 +254,32 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
         updated_at: now,
       };
 
-      const { data, error: updateError } = await supabase
-        .from("stores")
-        .update(updatedFields)
-        .eq("id", currentStore.id)
-        .eq("owner_id", user.id)
-        .select()
-        .maybeSingle();
+      const isLocalStore = currentStore.id.startsWith("local-store-");
+      let updatedStore: StoreSettings | null = null;
 
-      if (updateError) {
-        console.warn("Supabase store update notice:", updateError.message);
+      if (!isLocalStore) {
+        const { data, error: updateError } = await supabase
+          .from("stores")
+          .update(updatedFields)
+          .eq("id", currentStore.id)
+          .eq("owner_id", user.id)
+          .select()
+          .maybeSingle();
+
+        if (updateError) {
+          setError(updateError.message || "Failed to update store settings");
+          return false;
+        }
+        updatedStore = (data as StoreSettings) || {
+          ...currentStore,
+          ...updatedFields,
+        };
+      } else {
+        updatedStore = {
+          ...currentStore,
+          ...updatedFields,
+        };
       }
-
-      const updatedStore: StoreSettings = (data as StoreSettings) || {
-        ...currentStore,
-        ...updatedFields,
-      };
 
       // Update in state
       const nextStores = stores.map((s) =>

@@ -73,6 +73,23 @@ export interface FetchTransactionsResult {
   error: any;
 }
 
+const getLocalDateRange = (dateStr: string): { start: Date; end: Date } | null => {
+  const parts = dateStr.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  const [year, month, day] = parts;
+  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
+  if (Number.isNaN(start.getTime())) return null;
+  const end = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
+  return { start, end };
+};
+
+const toLocalDateKey = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
 export const fetchTransactionsByStore = async (
   storeId: string,
   options: FetchTransactionsOptions = {},
@@ -101,11 +118,11 @@ export const fetchTransactionsByStore = async (
       );
     }
     if (options.dateFilter) {
-      const start = new Date(`${options.dateFilter}T00:00:00.000Z`);
-      const end = new Date(start);
-      end.setUTCDate(end.getUTCDate() + 1);
-      if (!Number.isNaN(start.getTime())) {
-        q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+      const range = getLocalDateRange(options.dateFilter);
+      if (range) {
+        q = q
+          .gte("created_at", range.start.toISOString())
+          .lt("created_at", range.end.toISOString());
       }
     }
     return q;
@@ -146,11 +163,11 @@ export const fetchTransactionsByStore = async (
     );
   }
   if (options.dateFilter) {
-    const start = new Date(`${options.dateFilter}T00:00:00.000Z`);
-    const end = new Date(start);
-    end.setUTCDate(end.getUTCDate() + 1);
-    if (!Number.isNaN(start.getTime())) {
-      q = q.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+    const range = getLocalDateRange(options.dateFilter);
+    if (range) {
+      q = q
+        .gte("created_at", range.start.toISOString())
+        .lt("created_at", range.end.toISOString());
     }
   }
 
@@ -199,17 +216,21 @@ export const fetchTransactionMetrics = async (
           belongsToStore(tx, storeId, getTransactionStoreMap()),
         )) as Array<Pick<TransactionItem, "id" | "order_number" | "total" | "status" | "created_at">>;
     const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
+    const todayStr = toLocalDateKey(today);
     const yesterday = new Date(today);
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = toLocalDateKey(yesterday);
     let todaySum = 0;
     let yesterdaySum = 0;
     let completed = 0;
 
     for (const tx of transactions) {
       const isCompleted = tx.status === "Completed";
-      const txDate = tx.created_at ? tx.created_at.split("T")[0] : "";
+      const txDateObj = tx.created_at ? new Date(tx.created_at) : null;
+      const txDate =
+        txDateObj && !Number.isNaN(txDateObj.getTime())
+          ? toLocalDateKey(txDateObj)
+          : "";
       if (isCompleted) {
         completed++;
         if (txDate === todayStr) todaySum += Number(tx.total) || 0;

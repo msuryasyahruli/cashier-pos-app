@@ -25,11 +25,13 @@ export const createNextOrderNumber = async (storeId: string): Promise<string> =>
   // Fallback for clients that have not applied the counter migration yet.
   const counters = readLocalCounters();
   // Order numbers are globally unique in some database versions, so inspect
-  // all existing order numbers. This also works when the store_id column is
-  // not present yet.
+  // the highest existing ORD-xxxxxx values without scanning the entire table.
   const { data: existing } = await supabase
     .from("transactions")
-    .select("order_number");
+    .select("order_number")
+    .like("order_number", "ORD-%")
+    .order("order_number", { ascending: false })
+    .limit(50);
   const highest = (existing || []).reduce((max, transaction) => {
     const match = String(transaction.order_number || "").match(/^ORD-(\d+)$/);
     return Math.max(max, match ? Number(match[1]) : 0);

@@ -36,6 +36,12 @@ export const formatDate = (timestamp: string) => {
   })}, ${timeStr}`;
 };
 
+const escapeCsvCell = (value: unknown): string => {
+  const raw = String(value ?? "");
+  const safe = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+  return `"${safe.replace(/"/g, '""')}"`;
+};
+
 export const exportTransactionsCSV = (
   data: any[],
   exportDate?: string,
@@ -53,12 +59,12 @@ export const exportTransactionsCSV = (
     "Total ($)",
   ];
   const rows = data.map((tx) => [
-    `"${tx.order_number}"`,
-    `"${tx.created_at}"`,
-    `"${tx.cashier}"`,
-    tx.items_count,
-    `"${tx.payment_method}"`,
-    `"${tx.status}"`,
+    escapeCsvCell(tx.order_number),
+    escapeCsvCell(tx.created_at),
+    escapeCsvCell(tx.cashier),
+    Number(tx.items_count) || 0,
+    escapeCsvCell(tx.payment_method),
+    escapeCsvCell(tx.status),
     (Number(tx.total) || 0).toFixed(2),
   ]);
 
@@ -70,23 +76,22 @@ export const exportTransactionsCSV = (
   const summaryRows = [
     [],
     ["Summary", "Value"],
-    ["Store Name", `"${String(storeName || "").replace(/"/g, '""')}"`],
+    ["Store Name", escapeCsvCell(storeName || "")],
     ["Total Transactions", data.length],
     ["Total Items", totalItems],
     ["Total Sales ($)", totalSales.toFixed(2)],
   ];
 
-  const csvContent =
-    "data:text/csv;charset=utf-8," +
-    [
-      headers.join(","),
-      ...rows.map((e) => e.join(",")),
-      ...summaryRows.map((e) => e.join(",")),
-    ].join("\n");
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((e) => e.join(",")),
+    ...summaryRows.map((e) => e.join(",")),
+  ].join("\n");
 
-  const encodedUri = encodeURI(csvContent);
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
+  link.setAttribute("href", url);
   link.setAttribute(
     "download",
     `transactions_${String(storeName || "store")
@@ -97,4 +102,5 @@ export const exportTransactionsCSV = (
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };

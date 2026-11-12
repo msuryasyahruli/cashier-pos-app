@@ -83,6 +83,15 @@ export const useUserSettings = (): UseUserSettingsReturn => {
       setSaving(true);
       clearMessages();
 
+      if (updates.email && updates.email !== user.email) {
+        const { error: authError } = await supabase.auth.updateUser({
+          email: updates.email,
+        });
+        if (authError) {
+          throw authError;
+        }
+      }
+
       const { data, error: updateError } = await supabase
         .from("users")
         .update({

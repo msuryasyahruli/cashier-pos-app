@@ -187,6 +187,46 @@ export const deleteProductFromStore = async (
   return { error };
 };
 
+export const adjustProductStock = async (
+  productId: string,
+  delta: number,
+  storeId?: string,
+): Promise<{ error: any }> => {
+  const hasDbColumn = storeId ? await checkStoreIdSupport() : false;
+
+  let selectQuery = supabase
+    .from("products")
+    .select("id, stock")
+    .eq("id", productId);
+  if (hasDbColumn && storeId) {
+    selectQuery = selectQuery.eq("store_id", storeId);
+  }
+
+  const { data: product, error: fetchError } = await selectQuery.maybeSingle();
+  if (fetchError) {
+    return { error: fetchError };
+  }
+  if (!product) {
+    return { error: new Error(`Product ${productId} not found.`) };
+  }
+
+  const nextStock = Math.max(0, (Number(product.stock) || 0) + delta);
+  let updateQuery = supabase
+    .from("products")
+    .update({
+      stock: nextStock,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
+
+  if (hasDbColumn && storeId) {
+    updateQuery = updateQuery.eq("store_id", storeId);
+  }
+
+  const { error: updateError } = await updateQuery;
+  return { error: updateError };
+};
+
 export const mapInventoryToPosProducts = (items: InventoryItem[]): Product[] => {
   return items.map((item) => ({
     id: item.id,

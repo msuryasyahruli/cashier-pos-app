@@ -19,6 +19,10 @@ import {
   fetchTransactionsByStore,
   fetchTransactionMetrics,
 } from "../services/transactionService";
+import {
+  adjustProductStock,
+  checkStoreIdSupport,
+} from "../services/productService";
 import { supabase } from "../services/supabaseClient";
 import type { TransactionItem } from "../components/pos";
 import {
@@ -238,7 +242,7 @@ export const TransactionsPage: React.FC = () => {
   };
 
   const handleRefund = async () => {
-    if (!selectedTx) return;
+    if (!selectedTx || selectedTx.status !== "Completed") return;
     try {
       const detail = await fetchTransactionDetailFromSupabase(
         selectedTx.order_number,
@@ -248,21 +252,44 @@ export const TransactionsPage: React.FC = () => {
         selectedTx.discount_percent,
       );
 
-      if (detail?.items?.length > 0) {
+      if (!detail.isFallback && detail?.items?.length > 0) {
+        const hasStoreId = currentStore?.id
+          ? await checkStoreIdSupport()
+          : false;
+
         const restorePromises = detail.items.map(async (item) => {
+          if (item.id) {
+            const { error } = await adjustProductStock(
+              item.id,
+              item.quantity,
+              currentStore?.id,
+            );
+            if (error) {
+              console.warn(
+                `Failed to restore stock for product ${item.id}:`,
+                error,
+              );
+            }
+            return;
+          }
+
           if (!item.name) return;
-          const { data: prods } = await supabase
+          let query = supabase
             .from("products")
-            .select("id, stock")
+            .select("id")
             .eq("name", item.name)
             .limit(1);
+          if (hasStoreId && currentStore?.id) {
+            query = query.eq("store_id", currentStore.id);
+          }
 
+          const { data: prods } = await query;
           if (prods && prods.length > 0) {
-            const restoredStock = prods[0].stock + item.quantity;
-            await supabase
-              .from("products")
-              .update({ stock: restoredStock })
-              .eq("id", prods[0].id);
+            await adjustProductStock(
+              prods[0].id,
+              item.quantity,
+              currentStore?.id,
+            );
           }
         });
         await Promise.all(restorePromises);

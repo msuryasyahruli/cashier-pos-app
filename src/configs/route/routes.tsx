@@ -9,6 +9,7 @@ import {
   ProfilePage,
   NotFoundPage,
   LoginPage,
+  ResetPasswordPage,
 } from "../../pages";
 
 export const router = createBrowserRouter([
@@ -49,5 +50,9 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
   },
 ]);

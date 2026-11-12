@@ -19,6 +19,7 @@ export interface StoredTransactionDetail {
   total: number;
   cashReceived?: number;
   changeAmount?: number;
+  isFallback?: boolean;
 }
 
 export const saveTransactionToSupabase = async (
@@ -29,7 +30,7 @@ export const saveTransactionToSupabase = async (
   _summary?: CartSummary,
   _cashReceived?: number,
   _changeAmount?: number,
-): Promise<void> => {
+): Promise<{ error: any }> => {
   try {
     const itemRecords = items.map((item) => ({
       transaction_id: transactionId || null,
@@ -50,9 +51,12 @@ export const saveTransactionToSupabase = async (
         "Notice inserting to transaction_items in Supabase:",
         error.message,
       );
+      return { error };
     }
+    return { error: null };
   } catch (err) {
     console.error("Error inserting to transaction_items in Supabase:", err);
+    return { error: err };
   }
 };
 
@@ -101,6 +105,7 @@ export const fetchTransactionDetailFromSupabase = async (
         taxRatePercent,
         total:
           fallbackTotal || parseFloat((taxableSubtotal + taxAmount).toFixed(2)),
+        isFallback: false,
       };
     }
   } catch (err) {
@@ -148,5 +153,6 @@ export const fetchTransactionDetailFromSupabase = async (
     taxAmount: parseFloat(fallbackTax.toFixed(2)),
     taxRatePercent: fallbackTaxRatePercent,
     total: fallbackTotal,
+    isFallback: true,
   };
 };

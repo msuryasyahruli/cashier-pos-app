@@ -5,3 +5,4 @@ export * from "./SettingsPage";
 export * from "./ProfilePage";
 export * from "./NotFoundPage";
 export * from "./LoginPage";
+export * from "./ResetPasswordPage";

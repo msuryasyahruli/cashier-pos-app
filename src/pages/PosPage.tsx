@@ -16,6 +16,7 @@ import { useStore } from "../context/StoreContext";
 import {
   fetchProductsByStore,
   mapInventoryToPosProducts,
+  adjustProductStock,
 } from "../services/productService";
 import { CreateStoreModal } from "../components/store/CreateStoreModal";
 import {
@@ -120,6 +121,11 @@ export const PosPage: React.FC = () => {
   };
 
   const handleCompletePayment = async () => {
+    if (!currentStore?.id || items.length === 0) {
+      setErrorMessage("Please select a store and add items to the cart.");
+      return;
+    }
+
     const cashAmountNum = parseFloat(cashTendered) || 0;
     const changeDue = Math.max(0, cashAmountNum - summary.total);
 
@@ -213,31 +219,35 @@ export const PosPage: React.FC = () => {
         throw new Error("Failed to save transaction after multiple attempts.");
       }
 
-      // 2. Decrement stock for each purchased item
-      const stockUpdates = items.map(async (item) => {
-        const newStock = Math.max(0, item.product.stock - item.quantity);
-        const { error: prodError } = await supabase
-          .from("products")
-          .update({ stock: newStock })
-          .eq("id", item.product.id);
-
-        if (prodError) {
-          console.error(
-            `Error updating stock for ${item.product.name}:`,
-            prodError,
+      // 2. Decrement stock for each purchased item using fresh stock from DB
+      const stockResults = await Promise.all(
+        items.map(async (item) => {
+          const { error: prodError } = await adjustProductStock(
+            item.product.id,
+            -item.quantity,
+            currentStore.id,
           );
-        }
-      });
+          if (prodError) {
+            console.error(
+              `Error updating stock for ${item.product.name}:`,
+              prodError,
+            );
+          }
+          return prodError;
+        }),
+      );
 
-      await Promise.all(stockUpdates);
+      if (stockResults.some(Boolean)) {
+        console.warn("One or more product stock updates failed after checkout.");
+      }
 
       // 3. Refresh product list locally & remote
-      fetchProducts();
+      await fetchProducts();
 
-      // 4. Save detailed items info to local storage
+      // 4. Save detailed items info
       const txId = txData?.id || null;
-      rememberTransactionStore(txId, orderNumber, currentStore?.id ?? "");
-      saveTransactionToSupabase(
+      rememberTransactionStore(txId, orderNumber, currentStore.id);
+      await saveTransactionToSupabase(
         txId,
         orderNumber,
         items,
