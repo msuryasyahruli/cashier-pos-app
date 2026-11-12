@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import type { CartItem, CartSummary } from "../../hooks/useCart";
+import { useCurrency } from "../../hooks/useCurrency";
 
 interface CartSidebarProps {
   items: CartItem[];
@@ -37,6 +38,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
   isMobileOpen = false,
   onMobileClose,
 }) => {
+  const { format } = useCurrency();
   return (
     <>
       {/* ── Mobile backdrop ── */}
@@ -130,7 +132,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
                     {product.name}
                   </h4>
                   <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                    ${product.price.toFixed(2)} × {quantity}
+                    {format(product.price)} × {quantity}
                   </p>
                 </div>
 
@@ -191,21 +193,21 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span className="font-mono font-semibold">
-                ${summary.subtotal.toFixed(2)}
+                {format(summary.subtotal)}
               </span>
             </div>
             {summary.discountAmount > 0 && (
               <div className="flex justify-between text-emerald-600 font-medium">
                 <span>Discount ({discountPercent}%)</span>
                 <span className="font-mono font-semibold">
-                  -${summary.discountAmount.toFixed(2)}
+                  -{format(summary.discountAmount)}
                 </span>
               </div>
             )}
             <div className="flex justify-between">
               <span>Estimated Tax ({summary.taxRate * 100}%)</span>
               <span className="font-mono font-semibold">
-                ${summary.taxAmount.toFixed(2)}
+                {format(summary.taxAmount)}
               </span>
             </div>
             <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
@@ -213,7 +215,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
                 Total Due
               </span>
               <span className="font-mono font-extrabold text-xl text-indigo-600">
-                ${summary.total.toFixed(2)}
+                {format(summary.total)}
               </span>
             </div>
           </div>
@@ -237,7 +239,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
               Checkout
               <span className="hidden xs:inline sm:hidden lg:inline">
                 {" "}
-                (${summary.total.toFixed(2)})
+                ({format(summary.total)})
               </span>
             </span>
           </Button>

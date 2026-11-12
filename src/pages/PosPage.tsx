@@ -13,6 +13,7 @@ import { supabase } from "../services/supabaseClient";
 import { saveTransactionToSupabase } from "../services/transactionStorage";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../context/StoreContext";
+import { useCurrency } from "../hooks/useCurrency";
 import {
   fetchProductsByStore,
   mapInventoryToPosProducts,
@@ -22,6 +23,7 @@ import { CreateStoreModal } from "../components/store/CreateStoreModal";
 import {
   buildTransactionPayload,
   rememberTransactionStore,
+  rememberTransactionCurrency,
 } from "../services/transactionService";
 import Dropdown from "../components/Dropdown";
 import {
@@ -33,6 +35,8 @@ import { createNextOrderNumber } from "../services/orderNumberService";
 export const PosPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentStore } = useStore();
+  const { currency, exchangeRate, format, fromDisplay, formatInput } =
+    useCurrency();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
@@ -107,7 +111,7 @@ export const PosPage: React.FC = () => {
   } = useCart(taxRate);
 
   const handleOpenCheckout = () => {
-    setCashTendered(summary.total.toFixed(2));
+    setCashTendered(formatInput(summary.total));
     setErrorMessage(null);
     setPaymentSuccess(false);
     setIsCheckoutOpen(true);
@@ -126,10 +130,11 @@ export const PosPage: React.FC = () => {
       return;
     }
 
-    const cashAmountNum = parseFloat(cashTendered) || 0;
-    const changeDue = Math.max(0, cashAmountNum - summary.total);
+    const cashAmountDisplay = parseFloat(cashTendered) || 0;
+    const cashAmountIdr = fromDisplay(cashAmountDisplay);
+    const changeDue = Math.max(0, cashAmountIdr - summary.total);
 
-    if (paymentMethod === "cash" && cashAmountNum < summary.total) {
+    if (paymentMethod === "cash" && cashAmountIdr + 0.01 < summary.total) {
       setErrorMessage("Cash received is less than total amount due.");
       return;
     }
@@ -156,6 +161,8 @@ export const PosPage: React.FC = () => {
         payment_method: paymentMethodLabel,
         status: "Completed",
         discount_percent: discountPercent,
+        currency,
+        exchange_rate: exchangeRate,
       };
 
       // Attach store_id if the column exists in the DB
@@ -192,7 +199,34 @@ export const PosPage: React.FC = () => {
           continue;
         }
 
-        if (insertPayload.tax_amount !== undefined) {
+        const errorMsg = (txError.message || "").toLowerCase();
+        const isColumnMissing =
+          txError.code === "42703" ||
+          errorMsg.includes("column") ||
+          errorMsg.includes("does not exist");
+
+        if (
+          isColumnMissing &&
+          (errorMsg.includes("currency") ||
+            errorMsg.includes("exchange_rate")) &&
+          (insertPayload.currency !== undefined ||
+            insertPayload.exchange_rate !== undefined)
+        ) {
+          console.warn(
+            "Retrying transaction insert without currency/exchange_rate fields...",
+          );
+          const fallbackPayload = { ...insertPayload };
+          delete fallbackPayload.currency;
+          delete fallbackPayload.exchange_rate;
+          insertPayload = fallbackPayload;
+          continue;
+        }
+
+        if (
+          isColumnMissing &&
+          errorMsg.includes("tax_amount") &&
+          insertPayload.tax_amount !== undefined
+        ) {
           console.warn(
             "Retrying transaction insert without tax_amount; apply the tax migration to store it.",
           );
@@ -202,12 +236,28 @@ export const PosPage: React.FC = () => {
           continue;
         }
 
-        if (insertPayload.discount_percent !== undefined) {
+        if (
+          isColumnMissing &&
+          errorMsg.includes("discount_percent") &&
+          insertPayload.discount_percent !== undefined
+        ) {
           console.warn(
             "Retrying transaction insert without discount_percent field...",
           );
           const fallbackPayload = { ...insertPayload };
           delete fallbackPayload.discount_percent;
+          insertPayload = fallbackPayload;
+          continue;
+        }
+
+        if (
+          isColumnMissing &&
+          errorMsg.includes("store_id") &&
+          insertPayload.store_id !== undefined
+        ) {
+          console.warn("Retrying transaction insert without store_id field...");
+          const fallbackPayload = { ...insertPayload };
+          delete fallbackPayload.store_id;
           insertPayload = fallbackPayload;
           continue;
         }
@@ -238,7 +288,9 @@ export const PosPage: React.FC = () => {
       );
 
       if (stockResults.some(Boolean)) {
-        console.warn("One or more product stock updates failed after checkout.");
+        console.warn(
+          "One or more product stock updates failed after checkout.",
+        );
       }
 
       // 3. Refresh product list locally & remote
@@ -247,14 +299,17 @@ export const PosPage: React.FC = () => {
       // 4. Save detailed items info
       const txId = txData?.id || null;
       rememberTransactionStore(txId, orderNumber, currentStore.id);
+      rememberTransactionCurrency(txId, orderNumber, currency, exchangeRate);
       await saveTransactionToSupabase(
         txId,
         orderNumber,
         items,
         discountPercent,
         summary,
-        paymentMethod === "cash" ? cashAmountNum : undefined,
+        paymentMethod === "cash" ? cashAmountIdr : undefined,
         paymentMethod === "cash" ? changeDue : undefined,
+        currency,
+        exchangeRate,
       );
 
       // 5. Save completed order summary for receipt display
@@ -263,12 +318,14 @@ export const PosPage: React.FC = () => {
         items: [...items],
         summary: { ...summary },
         paymentMethod: paymentMethodLabel,
-        cashReceived: paymentMethod === "cash" ? cashAmountNum : undefined,
+        cashReceived: paymentMethod === "cash" ? cashAmountIdr : undefined,
         changeAmount: paymentMethod === "cash" ? changeDue : undefined,
         createdAt: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         }),
+        currency,
+        exchangeRate,
       });
 
       setPaymentSuccess(true);
@@ -295,9 +352,12 @@ export const PosPage: React.FC = () => {
             <Store size={28} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800">No Store Selected</h2>
+            <h2 className="text-lg font-bold text-slate-800">
+              No Store Selected
+            </h2>
             <p className="text-xs text-slate-500 mt-1">
-              Please set up or select a store to start taking orders and accessing the POS terminal.
+              Please set up or select a store to start taking orders and
+              accessing the POS terminal.
             </p>
           </div>
           <Button
@@ -354,7 +414,9 @@ export const PosPage: React.FC = () => {
           {loading ? (
             <div className="h-64 flex flex-col items-center justify-center text-slate-400">
               <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-              <p className="text-xs font-medium">Loading products for {currentStore.name}...</p>
+              <p className="text-xs font-medium">
+                Loading products for {currentStore.name}...
+              </p>
             </div>
           ) : products.length === 0 ? (
             <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-center p-6 bg-white rounded-2xl border border-dashed border-slate-200">
@@ -413,7 +475,7 @@ export const PosPage: React.FC = () => {
           </span>
         )}
         <span className="sr-only sm:not-sr-only">
-          {items.length === 0 ? "Cart" : `$${summary.total.toFixed(2)}`}
+          {items.length === 0 ? "Cart" : format(summary.total)}
         </span>
       </button>
 

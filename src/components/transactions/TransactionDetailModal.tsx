@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Modal, Button, Badge, ConfirmationModal } from "../";
 import {
   Printer,
@@ -12,6 +12,16 @@ import {
 import type { TransactionItem } from "../pos";
 import type { StoredTransactionDetail } from "../../services/transactionStorage";
 import { formatDate } from "../../utils/transactionHelpers";
+import {
+  formatCurrency,
+  formatDisplayAmount,
+  type CurrencyCode,
+} from "../../utils/currency";
+import {
+  getTransactionCurrency,
+  isLegacyUsdTransaction,
+} from "../../services/transactionService";
+import { useCurrency } from "../../hooks/useCurrency";
 
 interface TransactionDetailModalProps {
   selectedTx: TransactionItem | null;
@@ -30,9 +40,52 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   onClose,
   onRefund,
 }) => {
+  const { currency: storeCurrency, exchangeRates } = useCurrency();
   const [isRefundConfirmationOpen, setIsRefundConfirmationOpen] =
     useState(false);
   const [refundSubmitting, setRefundSubmitting] = useState(false);
+
+  const txCurrencyInfo = useMemo(() => {
+    if (!selectedTx) {
+      return {
+        currency: "IDR" as CurrencyCode,
+        exchangeRate: 1,
+        isLegacyUsd: false,
+      };
+    }
+    const rowCurrency = selectedTx.currency || txDetail?.currency;
+    const remembered = getTransactionCurrency(
+      selectedTx.id,
+      selectedTx.order_number,
+      rowCurrency,
+      selectedTx.exchange_rate ?? txDetail?.exchangeRate,
+      storeCurrency,
+      exchangeRates[storeCurrency],
+    );
+    const isLegacyUsd = isLegacyUsdTransaction(
+      selectedTx.total,
+      rowCurrency,
+      remembered,
+    );
+
+    return {
+      currency: isLegacyUsd ? ("USD" as CurrencyCode) : remembered.currency,
+      exchangeRate: remembered.exchangeRate,
+      isLegacyUsd,
+    };
+  }, [selectedTx, txDetail, storeCurrency, exchangeRates]);
+
+  const formatTx = useCallback(
+    (amount: number) => {
+      if (txCurrencyInfo.isLegacyUsd) {
+        return formatDisplayAmount(amount, "USD");
+      }
+      return formatCurrency(amount, txCurrencyInfo.currency, {
+        [txCurrencyInfo.currency]: txCurrencyInfo.exchangeRate,
+      });
+    },
+    [txCurrencyInfo],
+  );
 
   const confirmRefund = async () => {
     setRefundSubmitting(true);
@@ -155,7 +208,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                             {item.quantity}x {item.name}
                           </span>
                           <span className="font-semibold text-slate-900 shrink-0">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            {formatTx(item.price * item.quantity)}
                           </span>
                         </div>
                       ))}
@@ -167,7 +220,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     <div className="flex justify-between font-mono">
                       <span className="font-sans">Subtotal</span>
                       <span>
-                        ${(txDetail.subtotal || selectedTx.total).toFixed(2)}
+                        {formatTx(txDetail.subtotal || selectedTx.total)}
                       </span>
                     </div>
 
@@ -179,11 +232,11 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       </span>
                       {txDetail.discountPercent > 0 ? (
                         <span className="font-semibold text-emerald-600 font-mono">
-                          -${txDetail.discountAmount.toFixed(2)}
+                          -{formatTx(txDetail.discountAmount)}
                         </span>
                       ) : (
                         <span className="text-slate-400 font-mono">
-                          0% ($0.00)
+                          0% ({formatTx(0)})
                         </span>
                       )}
                     </div>
@@ -193,7 +246,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                         <span className="font-sans">
                           Tax ({Number(txDetail.taxRatePercent.toFixed(2))}%)
                         </span>
-                        <span>${txDetail.taxAmount.toFixed(2)}</span>
+                        <span>{formatTx(txDetail.taxAmount)}</span>
                       </div>
                     )}
 
@@ -202,7 +255,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                         Total Amount Paid
                       </span>
                       <span className="text-xl font-bold text-indigo-600 font-mono">
-                        ${(Number(selectedTx.total) || 0).toFixed(2)}
+                        {formatTx(Number(selectedTx.total) || 0)}
                       </span>
                     </div>
 
@@ -210,11 +263,10 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       txDetail.cashReceived > 0 && (
                         <div className="pt-1 text-[11px] font-mono text-slate-500 flex justify-between">
                           <span>
-                            Cash Tendered: $
-                            {(txDetail.cashReceived || 0).toFixed(2)}
+                            Cash Tendered: {formatTx(txDetail.cashReceived || 0)}
                           </span>
                           <span className="font-bold text-emerald-600">
-                            Change: ${(txDetail.changeAmount || 0).toFixed(2)}
+                            Change: {formatTx(txDetail.changeAmount || 0)}
                           </span>
                         </div>
                       )}

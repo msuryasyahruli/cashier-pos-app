@@ -1,4 +1,5 @@
 import { useStore, type StoreSettings } from "../context/StoreContext";
+import type { CurrencyCode, ExchangeRatesMap } from "../utils/currency";
 
 export type { StoreSettings };
 
@@ -17,6 +18,8 @@ export interface UseStoreSettingsReturn {
         | "branch_code"
         | "receipt_footer_note"
         | "default_sales_tax_rate"
+        | "currency"
+        | "exchange_rates"
       >
     >,
   ) => Promise<boolean>;
@@ -25,6 +28,8 @@ export interface UseStoreSettingsReturn {
     branch_code?: string;
     receipt_footer_note?: string;
     default_sales_tax_rate?: number;
+    currency?: CurrencyCode;
+    exchange_rates?: ExchangeRatesMap;
   }) => Promise<StoreSettings | null>;
   selectStore: (storeId: string) => void;
   refetch: () => Promise<void>;

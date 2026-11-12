@@ -1,9 +1,116 @@
 import { supabase } from "./supabaseClient";
 import type { TransactionItem } from "../components/pos";
+import {
+  DEFAULT_CURRENCY,
+  getCurrencyMeta,
+  getExchangeRate,
+  type CurrencyCode,
+} from "../utils/currency";
 
 // Cached column support check
 let isStoreIdColumnSupported: boolean | null = null;
 const TRANSACTION_STORE_MAP_KEY = "cashier_transaction_store_map";
+const TRANSACTION_CURRENCY_MAP_KEY = "cashier_transaction_currency_map";
+
+export interface TransactionCurrencyRecord {
+  currency: CurrencyCode;
+  exchangeRate: number;
+  isExplicit?: boolean;
+}
+
+export const getTransactionCurrencyMap = (): Record<
+  string,
+  TransactionCurrencyRecord
+> => {
+  try {
+    return JSON.parse(
+      localStorage.getItem(TRANSACTION_CURRENCY_MAP_KEY) || "{}",
+    ) as Record<string, TransactionCurrencyRecord>;
+  } catch {
+    return {};
+  }
+};
+
+export const rememberTransactionCurrency = (
+  transactionId: string | null | undefined,
+  orderNumber: string,
+  currency: CurrencyCode,
+  exchangeRate: number,
+): void => {
+  if (!currency) return;
+  const map = getTransactionCurrencyMap();
+  const validRate = exchangeRate > 0 ? exchangeRate : getExchangeRate(currency);
+  const record: TransactionCurrencyRecord = {
+    currency: getCurrencyMeta(currency).code,
+    exchangeRate: validRate,
+    isExplicit: true,
+  };
+  if (transactionId) map[`id:${transactionId}`] = record;
+  map[`order:${orderNumber}`] = record;
+  localStorage.setItem(TRANSACTION_CURRENCY_MAP_KEY, JSON.stringify(map));
+};
+
+export const getTransactionCurrency = (
+  transactionId?: string | null,
+  orderNumber?: string | null,
+  rowCurrency?: string | null,
+  rowExchangeRate?: number | null,
+  storeDefaultCurrency?: CurrencyCode | string | null,
+  storeExchangeRate?: number | null,
+): TransactionCurrencyRecord => {
+  // The database row is the source of truth; the local cache only covers
+  // databases that have not applied the currency migration yet.
+  if (rowCurrency) {
+    const code = getCurrencyMeta(rowCurrency).code;
+    return {
+      currency: code,
+      exchangeRate:
+        rowExchangeRate && rowExchangeRate > 0
+          ? rowExchangeRate
+          : getExchangeRate(code),
+      isExplicit: true,
+    };
+  }
+
+  const map = getTransactionCurrencyMap();
+  const localRecord =
+    (transactionId && map[`id:${transactionId}`]) ||
+    (orderNumber && map[`order:${orderNumber}`]);
+  if (localRecord && localRecord.isExplicit) {
+    return localRecord;
+  }
+
+  if (storeDefaultCurrency) {
+    const code = getCurrencyMeta(storeDefaultCurrency).code;
+    return {
+      currency: code,
+      exchangeRate:
+        storeExchangeRate && storeExchangeRate > 0
+          ? storeExchangeRate
+          : getExchangeRate(code),
+      isExplicit: false,
+    };
+  }
+
+  return {
+    currency: DEFAULT_CURRENCY,
+    exchangeRate: 1,
+    isExplicit: false,
+  };
+};
+
+/**
+ * Rows saved before the IDR base migration stored totals in USD and carry no
+ * currency tag. Detect them so they are not read as tiny IDR amounts.
+ */
+export const isLegacyUsdTransaction = (
+  total: number | string | null | undefined,
+  rowCurrency: string | null | undefined,
+  currencyInfo: TransactionCurrencyRecord,
+): boolean => {
+  const amount = Number(total) || 0;
+  return !rowCurrency && !currencyInfo.isExplicit && amount > 0 && amount < 1000;
+};
 
 const getTransactionStoreMap = (): Record<string, string> => {
   try {
@@ -204,7 +311,9 @@ export const fetchTransactionMetrics = async (
   try {
     const hasDbColumn = await checkTxStoreIdSupport();
 
-    let q = supabase.from("transactions").select("id, order_number, total, status, created_at");
+    // Select all columns so currency fields are included when the migration
+    // exists, without failing on databases that lack them.
+    let q = supabase.from("transactions").select("*");
     if (hasDbColumn) q = q.eq("store_id", storeId);
 
     const { data, error } = await q;
@@ -214,12 +323,13 @@ export const fetchTransactionMetrics = async (
       ? data
       : data.filter((tx) =>
           belongsToStore(tx, storeId, getTransactionStoreMap()),
-        )) as Array<Pick<TransactionItem, "id" | "order_number" | "total" | "status" | "created_at">>;
+        )) as TransactionItem[];
     const today = new Date();
     const todayStr = toLocalDateKey(today);
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = toLocalDateKey(yesterday);
+    const legacyUsdRate = getExchangeRate("USD");
     let todaySum = 0;
     let yesterdaySum = 0;
     let completed = 0;
@@ -233,8 +343,18 @@ export const fetchTransactionMetrics = async (
           : "";
       if (isCompleted) {
         completed++;
-        if (txDate === todayStr) todaySum += Number(tx.total) || 0;
-        if (txDate === yesterdayStr) yesterdaySum += Number(tx.total) || 0;
+        const amount = Number(tx.total) || 0;
+        const info = getTransactionCurrency(
+          tx.id,
+          tx.order_number,
+          tx.currency,
+          tx.exchange_rate,
+        );
+        const amountIdr = isLegacyUsdTransaction(amount, tx.currency, info)
+          ? amount * legacyUsdRate
+          : amount;
+        if (txDate === todayStr) todaySum += amountIdr;
+        if (txDate === yesterdayStr) yesterdaySum += amountIdr;
       }
     }
 

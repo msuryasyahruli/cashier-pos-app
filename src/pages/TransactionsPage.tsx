@@ -18,6 +18,8 @@ import {
 import {
   fetchTransactionsByStore,
   fetchTransactionMetrics,
+  getTransactionCurrency,
+  isLegacyUsdTransaction,
 } from "../services/transactionService";
 import {
   adjustProductStock,
@@ -31,10 +33,13 @@ import {
   TransactionDetailModal,
 } from "../components/transactions";
 import { useStore } from "../context/StoreContext";
+import { useCurrency } from "../hooks/useCurrency";
+import { formatCurrency, formatDisplayAmount } from "../utils/currency";
 import { CreateStoreModal } from "../components/store/CreateStoreModal";
 
 export const TransactionsPage: React.FC = () => {
   const { currentStore } = useStore();
+  const { currency, exchangeRates, format } = useCurrency();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -140,7 +145,22 @@ export const TransactionsPage: React.FC = () => {
       key: "total",
       align: "right",
       className: "font-bold text-slate-900 font-mono",
-      accessor: (tx) => `$${(Number(tx.total) || 0).toFixed(2)}`,
+      accessor: (tx) => {
+        const info = getTransactionCurrency(
+          tx.id,
+          tx.order_number,
+          tx.currency,
+          tx.exchange_rate,
+          currency,
+          exchangeRates[currency],
+        );
+        if (isLegacyUsdTransaction(tx.total, tx.currency, info)) {
+          return formatDisplayAmount(Number(tx.total) || 0, "USD");
+        }
+        return formatCurrency(Number(tx.total) || 0, info.currency, {
+          [info.currency]: info.exchangeRate,
+        });
+      },
     },
   ];
 
@@ -236,7 +256,13 @@ export const TransactionsPage: React.FC = () => {
     } else if (data.length === 0) {
       alert("No transactions found for the selected day.");
     } else {
-      exportTransactionsCSV(data, exportDate, currentStore.name);
+      exportTransactionsCSV(
+        data,
+        exportDate,
+        currentStore.name,
+        currency,
+        exchangeRates,
+      );
     }
     setExporting(false);
   };
@@ -412,7 +438,7 @@ export const TransactionsPage: React.FC = () => {
           </span>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900 font-mono">
-              ${metrics.todaySales.toFixed(2)}
+              {format(metrics.todaySales)}
             </span>
             <Badge variant="success" size="sm">
               Live
@@ -451,7 +477,7 @@ export const TransactionsPage: React.FC = () => {
                 : `${revenueChange >= 0 ? "+" : ""}${revenueChange.toFixed(1)}%`}
             </span>
             <span className="text-xs text-slate-400 font-medium">
-              Yesterday: ${metrics.yesterdaySales.toFixed(2)}
+              Yesterday: {format(metrics.yesterdaySales)}
             </span>
           </div>
         </Card>

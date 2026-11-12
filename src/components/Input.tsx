@@ -3,12 +3,14 @@ import React from 'react';
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  helperText?: string;
   icon?: React.ReactNode;
 }
 
 export const Input: React.FC<InputProps> = ({
   label,
   error,
+  helperText,
   icon,
   className = '',
   id,
@@ -40,6 +42,9 @@ export const Input: React.FC<InputProps> = ({
         />
       </div>
       {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+      {!error && helperText && (
+        <p className="text-[11px] text-slate-500 mt-1">{helperText}</p>
+      )}
     </div>
   );
 };

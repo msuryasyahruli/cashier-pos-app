@@ -1,3 +1,15 @@
+import {
+  DEFAULT_CURRENCY,
+  convertFromIdr,
+  getCurrencyMeta,
+  type CurrencyCode,
+  type ExchangeRatesMap,
+} from "./currency";
+import {
+  getTransactionCurrency,
+  isLegacyUsdTransaction,
+} from "../services/transactionService";
+
 export const formatDate = (timestamp: string) => {
   if (!timestamp) return "-";
   const date = new Date(timestamp);
@@ -46,8 +58,16 @@ export const exportTransactionsCSV = (
   data: any[],
   exportDate?: string,
   storeName?: string,
+  currency: CurrencyCode = DEFAULT_CURRENCY,
+  exchangeRates?: ExchangeRatesMap,
 ) => {
   if (data.length === 0) return;
+
+  const meta = getCurrencyMeta(currency);
+  const formatCsvAmount = (amountIdr: number) => {
+    const converted = convertFromIdr(amountIdr, meta.code, exchangeRates);
+    return converted.toFixed(meta.fractionDigits);
+  };
 
   const headers = [
     "Order ID",
@@ -56,30 +76,56 @@ export const exportTransactionsCSV = (
     "Items Count",
     "Payment Method",
     "Status",
-    "Total ($)",
+    "Currency",
+    "Total",
   ];
-  const rows = data.map((tx) => [
-    escapeCsvCell(tx.order_number),
-    escapeCsvCell(tx.created_at),
-    escapeCsvCell(tx.cashier),
-    Number(tx.items_count) || 0,
-    escapeCsvCell(tx.payment_method),
-    escapeCsvCell(tx.status),
-    (Number(tx.total) || 0).toFixed(2),
-  ]);
+  const rows = data.map((tx) => {
+    const info = getTransactionCurrency(
+      tx.id,
+      tx.order_number,
+      tx.currency,
+      tx.exchange_rate,
+      currency,
+      exchangeRates ? exchangeRates[currency] : undefined,
+    );
+    const isLegacyUsd = isLegacyUsdTransaction(tx.total, tx.currency, info);
+    const txCurrency = isLegacyUsd ? "USD" : info.currency;
+    const txRate = info.exchangeRate;
+    const meta = getCurrencyMeta(txCurrency);
+    const val = isLegacyUsd
+      ? (Number(tx.total) || 0).toFixed(2)
+      : convertFromIdr(Number(tx.total) || 0, txCurrency, {
+          [txCurrency]: txRate,
+        }).toFixed(meta.fractionDigits);
+
+    return [
+      escapeCsvCell(tx.order_number),
+      escapeCsvCell(tx.created_at),
+      escapeCsvCell(tx.cashier),
+      Number(tx.items_count) || 0,
+      escapeCsvCell(tx.payment_method),
+      escapeCsvCell(tx.status),
+      txCurrency,
+      val,
+    ];
+  });
 
   const totalItems = data.reduce(
     (sum, tx) => sum + (Number(tx.items_count) || 0),
     0,
   );
-  const totalSales = data.reduce((sum, tx) => sum + (Number(tx.total) || 0), 0);
+  const totalSalesIdr = data.reduce(
+    (sum, tx) => sum + (Number(tx.total) || 0),
+    0,
+  );
   const summaryRows = [
     [],
     ["Summary", "Value"],
     ["Store Name", escapeCsvCell(storeName || "")],
+    ["Currency", meta.code],
     ["Total Transactions", data.length],
     ["Total Items", totalItems],
-    ["Total Sales ($)", totalSales.toFixed(2)],
+    [`Total Sales (${meta.code})`, formatCsvAmount(totalSalesIdr)],
   ];
 
   const csvContent = [
@@ -94,10 +140,12 @@ export const exportTransactionsCSV = (
   link.setAttribute("href", url);
   link.setAttribute(
     "download",
-    `transactions_${String(storeName || "store")
-      .trim()
-      .replace(/[^a-z0-9]+/gi, "-")
-      .replace(/^-|-$/g, "") || "store"}_${exportDate || new Date().toISOString().slice(0, 10)}.csv`,
+    `transactions_${
+      String(storeName || "store")
+        .trim()
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-|-$/g, "") || "store"
+    }_${exportDate || new Date().toISOString().slice(0, 10)}.csv`,
   );
   document.body.appendChild(link);
   link.click();

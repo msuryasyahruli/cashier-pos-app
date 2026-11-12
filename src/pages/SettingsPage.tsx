@@ -10,6 +10,7 @@ import {
   Tags,
   Pencil,
   Trash2,
+  Coins,
 } from "lucide-react";
 import { useStoreSettings } from "../hooks";
 import { CreateStoreModal } from "../components/store/CreateStoreModal";
@@ -21,6 +22,16 @@ import {
   deleteCategoryForStore,
   type StoreCategory,
 } from "../services/categoryService";
+import {
+  DEFAULT_CURRENCY,
+  DEFAULT_EXCHANGE_RATES,
+  SUPPORTED_CURRENCIES,
+  formatCurrency,
+  getCurrencyMeta,
+  getExchangeRate,
+  type CurrencyCode,
+  type ExchangeRatesMap,
+} from "../utils/currency";
 
 export const SettingsPage: React.FC = () => {
   const {
@@ -42,20 +53,31 @@ export const SettingsPage: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<StoreCategory | null>(
     null,
   );
-  const [deleteCategory, setDeleteCategory] = useState<StoreCategory | null>(null);
-  const [deleteCategorySubmitting, setDeleteCategorySubmitting] = useState(false);
+  const [deleteCategory, setDeleteCategory] = useState<StoreCategory | null>(
+    null,
+  );
+  const [deleteCategorySubmitting, setDeleteCategorySubmitting] =
+    useState(false);
 
   // Store form state
   const [name, setName] = useState("");
   const [branchCode, setBranchCode] = useState("");
   const [receiptFooterNote, setReceiptFooterNote] = useState("");
   const [defaultSalesTaxRate, setDefaultSalesTaxRate] = useState("");
+  const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRatesMap>({
+    ...DEFAULT_EXCHANGE_RATES,
+  });
+  const [rateInput, setRateInput] = useState("1");
 
   // New store form state (when setting up initial store)
   const [newStoreName, setNewStoreName] = useState("");
   const [newBranchCode, setNewBranchCode] = useState("");
   const [newReceiptFooter, setNewReceiptFooter] = useState("");
   const [newTaxRate, setNewTaxRate] = useState("5.0");
+  const [newCurrency, setNewCurrency] =
+    useState<CurrencyCode>(DEFAULT_CURRENCY);
+  const [newRateInput, setNewRateInput] = useState("1");
 
   // Sync store state
   useEffect(() => {
@@ -68,6 +90,17 @@ export const SettingsPage: React.FC = () => {
           ? String(store.default_sales_tax_rate)
           : "5.0",
       );
+      const activeCurrency = getCurrencyMeta(
+        store.currency || DEFAULT_CURRENCY,
+      ).code;
+      const mergedRates: ExchangeRatesMap = {
+        ...DEFAULT_EXCHANGE_RATES,
+        ...(store.exchange_rates || {}),
+        IDR: 1,
+      };
+      setCurrency(activeCurrency);
+      setExchangeRates(mergedRates);
+      setRateInput(String(getExchangeRate(activeCurrency, mergedRates)));
     }
   }, [store]);
 
@@ -79,12 +112,51 @@ export const SettingsPage: React.FC = () => {
     fetchCategoriesByStore(store.id).then(({ data }) => setCategories(data));
   }, [store?.id]);
 
+  const handleCurrencyChange = (nextCode: CurrencyCode) => {
+    setCurrency(nextCode);
+    const nextRate = getExchangeRate(nextCode, exchangeRates);
+    setRateInput(String(nextRate));
+  };
+
+  const handleRateInputChange = (val: string) => {
+    setRateInput(val);
+    const parsed = parseFloat(val);
+    if (currency !== "IDR" && Number.isFinite(parsed) && parsed > 0) {
+      setExchangeRates((prev) => ({
+        ...prev,
+        [currency]: parsed,
+      }));
+    }
+  };
+
+  const handleNewCurrencyChange = (nextCode: CurrencyCode) => {
+    setNewCurrency(nextCode);
+    setNewRateInput(String(getCurrencyMeta(nextCode).defaultRateInIdr));
+  };
+
   const handleSaveStore = async () => {
+    const parsedRate = parseFloat(rateInput);
+    const validRate =
+      currency === "IDR"
+        ? 1
+        : Number.isFinite(parsedRate) && parsedRate > 0
+          ? parsedRate
+          : getCurrencyMeta(currency).defaultRateInIdr;
+
+    const updatedRates: ExchangeRatesMap = {
+      ...DEFAULT_EXCHANGE_RATES,
+      ...exchangeRates,
+      [currency]: validRate,
+      IDR: 1,
+    };
+
     await updateStore({
       name,
       branch_code: branchCode,
       receipt_footer_note: receiptFooterNote,
       default_sales_tax_rate: parseFloat(defaultSalesTaxRate) || 0,
+      currency,
+      exchange_rates: updatedRates,
     });
   };
 
@@ -92,11 +164,25 @@ export const SettingsPage: React.FC = () => {
     e.preventDefault();
     if (!newStoreName.trim()) return;
 
+    const parsedRate = parseFloat(newRateInput);
+    const validRate =
+      newCurrency === "IDR"
+        ? 1
+        : Number.isFinite(parsedRate) && parsedRate > 0
+          ? parsedRate
+          : getCurrencyMeta(newCurrency).defaultRateInIdr;
+
     await createStore({
       name: newStoreName.trim(),
       branch_code: newBranchCode.trim() || undefined,
       receipt_footer_note: newReceiptFooter.trim() || undefined,
       default_sales_tax_rate: parseFloat(newTaxRate) || 0,
+      currency: newCurrency,
+      exchange_rates: {
+        ...DEFAULT_EXCHANGE_RATES,
+        [newCurrency]: validRate,
+        IDR: 1,
+      },
     });
   };
 
@@ -155,6 +241,13 @@ export const SettingsPage: React.FC = () => {
   };
 
   const isLoading = loading;
+  const selectedMeta = getCurrencyMeta(currency);
+  const previewRate =
+    currency === "IDR"
+      ? 1
+      : parseFloat(rateInput) > 0
+        ? parseFloat(rateInput)
+        : selectedMeta.defaultRateInIdr;
 
   // Loading skeleton
   if (isLoading && !store && stores.length === 0) {
@@ -175,7 +268,8 @@ export const SettingsPage: React.FC = () => {
           Store Settings
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Manage store details, categories, and cashier terminal preferences.
+          Manage store details, categories, currency conversion, and cashier
+          terminal preferences.
         </p>
       </div>
 
@@ -323,6 +417,63 @@ export const SettingsPage: React.FC = () => {
           </Card>
 
           <Card className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Coins size={14} className="text-indigo-500" />
+                Currency & Exchange Rate
+              </h2>
+              <span className="text-[11px] font-medium text-slate-500">
+                Base Currency: IDR (Rp)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="store-currency-select"
+                  className="text-xs font-semibold text-slate-700"
+                >
+                  Active Store Currency
+                </label>
+                <select
+                  id="store-currency-select"
+                  value={currency}
+                  onChange={(e) =>
+                    handleCurrencyChange(e.target.value as CurrencyCode)
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  {SUPPORTED_CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} ({c.symbol}) - {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <Input
+                label={
+                  currency === "IDR"
+                    ? "Exchange Rate (Base Currency)"
+                    : `Exchange Rate (1 ${currency} in IDR)`
+                }
+                type="number"
+                min="0.0001"
+                step="any"
+                value={currency === "IDR" ? "1" : rateInput}
+                disabled={currency === "IDR"}
+                onChange={(e) => handleRateInputChange(e.target.value)}
+                placeholder={`e.g. ${selectedMeta.defaultRateInIdr}`}
+                helperText={
+                  currency === "IDR"
+                    ? "Prices are stored and displayed directly in IDR."
+                    : `1 ${currency} = ${formatCurrency(previewRate, "IDR")} • Rp 100.000 = ${formatCurrency(100000, currency, { [currency]: previewRate })}`
+                }
+              />
+            </div>
+          </Card>
+
+          <Card className="space-y-4">
             <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
               Hardware & Peripherals
             </h2>
@@ -415,6 +566,42 @@ export const SettingsPage: React.FC = () => {
                 placeholder="e.g. Thank you for your visit!"
                 value={newReceiptFooter}
                 onChange={(e) => setNewReceiptFooter(e.target.value)}
+              />
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="new-store-currency-select"
+                  className="text-xs font-semibold text-slate-700"
+                >
+                  Store Currency
+                </label>
+                <select
+                  id="new-store-currency-select"
+                  value={newCurrency}
+                  onChange={(e) =>
+                    handleNewCurrencyChange(e.target.value as CurrencyCode)
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  {SUPPORTED_CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} ({c.symbol}) - {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Input
+                label={
+                  newCurrency === "IDR"
+                    ? "Exchange Rate (Base Currency)"
+                    : `Exchange Rate (1 ${newCurrency} in IDR)`
+                }
+                type="number"
+                min="0.0001"
+                step="any"
+                value={newCurrency === "IDR" ? "1" : newRateInput}
+                disabled={newCurrency === "IDR"}
+                onChange={(e) => setNewRateInput(e.target.value)}
+                placeholder={`e.g. ${getCurrencyMeta(newCurrency).defaultRateInIdr}`}
               />
             </div>
 

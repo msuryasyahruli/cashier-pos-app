@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import type { CartSummary, Product } from "../hooks/useCart";
+import type { CurrencyCode } from "../utils/currency";
 
 export interface OrderItemDetail {
   id?: string;
@@ -20,17 +21,46 @@ export interface StoredTransactionDetail {
   cashReceived?: number;
   changeAmount?: number;
   isFallback?: boolean;
+  currency?: CurrencyCode;
+  exchangeRate?: number;
 }
 
 export const saveTransactionToSupabase = async (
   transactionId: string | null,
   orderNumber: string,
   items: { product: Product; quantity: number }[],
-  _discountPercent?: number,
-  _summary?: CartSummary,
-  _cashReceived?: number,
-  _changeAmount?: number,
+  discountPercent: number = 0,
+  summary?: CartSummary,
+  cashReceived?: number,
+  changeAmount?: number,
+  currency?: CurrencyCode,
+  exchangeRate?: number,
 ): Promise<{ error: any }> => {
+  try {
+    const detailKey = `cashier_tx_detail_${orderNumber}`;
+    const cachedDetail = {
+      orderNumber,
+      discountPercent,
+      subtotal: summary?.subtotal,
+      discountAmount: summary?.discountAmount,
+      taxAmount: summary?.taxAmount,
+      total: summary?.total,
+      cashReceived,
+      changeAmount,
+      currency,
+      exchangeRate,
+    };
+    localStorage.setItem(detailKey, JSON.stringify(cachedDetail));
+    if (transactionId) {
+      localStorage.setItem(
+        `cashier_tx_detail_${transactionId}`,
+        JSON.stringify(cachedDetail),
+      );
+    }
+  } catch {
+    // ignore storage error
+  }
+
   try {
     const itemRecords = items.map((item) => ({
       transaction_id: transactionId || null,
@@ -67,6 +97,18 @@ export const fetchTransactionDetailFromSupabase = async (
   fallbackTotal: number = 0,
   fallbackDiscountPercent: number = 0,
 ): Promise<StoredTransactionDetail> => {
+  const localMeta = (() => {
+    try {
+      const str =
+        (transactionId &&
+          localStorage.getItem(`cashier_tx_detail_${transactionId}`)) ||
+        localStorage.getItem(`cashier_tx_detail_${orderNumber}`);
+      return str ? JSON.parse(str) : null;
+    } catch {
+      return null;
+    }
+  })();
+
   try {
     let query = supabase.from("transaction_items").select("*");
     if (transactionId) {
@@ -106,6 +148,10 @@ export const fetchTransactionDetailFromSupabase = async (
         total:
           fallbackTotal || parseFloat((taxableSubtotal + taxAmount).toFixed(2)),
         isFallback: false,
+        cashReceived: localMeta?.cashReceived,
+        changeAmount: localMeta?.changeAmount,
+        currency: localMeta?.currency,
+        exchangeRate: localMeta?.exchangeRate,
       };
     }
   } catch (err) {
@@ -118,18 +164,10 @@ export const fetchTransactionDetailFromSupabase = async (
   const fallbackTaxRatePercent =
     fallbackSubtotal > 0 ? (fallbackTax / fallbackSubtotal) * 100 : 0;
 
-  const fallbackNames = [
-    "Caramel Macchiato",
-    "Espresso Roast",
-    "Matcha Green Tea Latte",
-    "Croissant Butter",
-    "Iced Americano",
-  ];
-
   const items: OrderItemDetail[] = [];
   if (fallbackItemsCount <= 1) {
     items.push({
-      name: "Assorted Cafe Item",
+      name: "Order Item",
       quantity: 1,
       price: parseFloat(fallbackSubtotal.toFixed(2)),
     });
@@ -137,7 +175,7 @@ export const fetchTransactionDetailFromSupabase = async (
     const avgPrice = fallbackSubtotal / fallbackItemsCount;
     for (let i = 0; i < fallbackItemsCount; i++) {
       items.push({
-        name: fallbackNames[i % fallbackNames.length],
+        name: `Order Item #${i + 1}`,
         quantity: 1,
         price: parseFloat(avgPrice.toFixed(2)),
       });
@@ -154,5 +192,9 @@ export const fetchTransactionDetailFromSupabase = async (
     taxRatePercent: fallbackTaxRatePercent,
     total: fallbackTotal,
     isFallback: true,
+    cashReceived: localMeta?.cashReceived,
+    changeAmount: localMeta?.changeAmount,
+    currency: localMeta?.currency,
+    exchangeRate: localMeta?.exchangeRate,
   };
 };

@@ -2,6 +2,7 @@ import React from "react";
 import { Badge, Card } from "../";
 import { Plus, Check } from "lucide-react";
 import type { Product } from "../../hooks/useCart";
+import { useCurrency } from "../../hooks/useCurrency";
 
 interface ProductCardProps {
   product: Product;
@@ -14,6 +15,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   inCartQuantity = 0,
   onAddToCart,
 }) => {
+  const { format } = useCurrency();
   const isOutOfStock = product.stock <= 0;
   const isLowStock =
     product.stock > 0 && product.stock <= (product.low_stock_threshold || 5);
@@ -70,7 +72,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="min-w-0">
           <span className="text-xs text-slate-400 font-medium">Price</span>
           <p className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono">
-            ${product.price.toFixed(2)}
+            {format(product.price)}
           </p>
         </div>
 

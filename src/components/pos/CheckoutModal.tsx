@@ -13,6 +13,12 @@ import {
 } from "lucide-react";
 import type { CompletedOrderInfo } from "./posTypes";
 import type { CartSummary } from "../../hooks/useCart";
+import { useCurrency } from "../../hooks/useCurrency";
+import {
+  formatCurrency,
+  getExchangeRate,
+  getQuickCashAmounts,
+} from "../../utils/currency";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -55,12 +61,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onSetPaymentMethod,
   onSetCashTendered,
 }) => {
-  const cashAmountNum = parseFloat(cashTendered) || 0;
-  const changeDue = Math.max(0, cashAmountNum - summary.total);
+  const {
+    currency,
+    currencyMeta,
+    exchangeRates,
+    format,
+    formatDisplay,
+    toDisplay,
+  } = useCurrency();
+
+  const receiptCurrency = completedOrder?.currency || currency;
+  const receiptRate =
+    completedOrder?.exchangeRate && completedOrder.exchangeRate > 0
+      ? completedOrder.exchangeRate
+      : getExchangeRate(receiptCurrency, exchangeRates);
+  const formatReceipt = (amountIdr: number) =>
+    formatCurrency(amountIdr, receiptCurrency, {
+      [receiptCurrency]: receiptRate,
+    });
+
+  const totalDisplay = toDisplay(summary.total);
+  const cashAmountDisplay = parseFloat(cashTendered) || 0;
+  const changeDueDisplay = Math.max(0, cashAmountDisplay - totalDisplay);
   const isCashInsufficient =
     paymentMethod === "cash" &&
-    cashAmountNum > 0 &&
-    cashAmountNum < summary.total;
+    (cashAmountDisplay <= 0 || cashAmountDisplay + 0.0001 < totalDisplay);
+
+  const quickCashValues = getQuickCashAmounts(totalDisplay, currency);
 
   return (
     <Modal
@@ -129,7 +156,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             >
               {isProcessing
                 ? "Processing Payment..."
-                : `Confirm & Pay $${summary.total.toFixed(2)}`}
+                : `Confirm & Pay ${format(summary.total)}`}
             </Button>
           </>
         )
@@ -184,7 +211,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {item.quantity}x {item.product.name}
                   </span>
                   <span className="font-semibold text-slate-900 shrink-0">
-                    ${(item.product.price * item.quantity).toFixed(2)}
+                    {formatReceipt(item.product.price * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -194,24 +221,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div className="pt-2 border-t border-dashed border-slate-300 space-y-1 text-slate-600">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${completedOrder.summary.subtotal.toFixed(2)}</span>
+                <span>{formatReceipt(completedOrder.summary.subtotal)}</span>
               </div>
               {completedOrder.summary.discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-600">
                   <span>Discount</span>
-                  <span>
-                    -${completedOrder.summary.discountAmount.toFixed(2)}
-                  </span>
+                  <span>-{formatReceipt(completedOrder.summary.discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Tax ({completedOrder.summary.taxRate * 100}%)</span>
-                <span>${completedOrder.summary.taxAmount.toFixed(2)}</span>
+                <span>{formatReceipt(completedOrder.summary.taxAmount)}</span>
               </div>
               <div className="flex justify-between font-bold text-slate-900 text-sm pt-1 border-t border-slate-200 font-sans">
                 <span>Total Paid</span>
                 <span className="text-indigo-600 font-mono">
-                  ${completedOrder.summary.total.toFixed(2)}
+                  {formatReceipt(completedOrder.summary.total)}
                 </span>
               </div>
 
@@ -219,15 +244,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <>
                   <div className="flex justify-between text-slate-500 pt-1">
                     <span>Cash Tendered</span>
-                    <span>
-                      ${(completedOrder.cashReceived || 0).toFixed(2)}
-                    </span>
+                    <span>{formatReceipt(completedOrder.cashReceived || 0)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-emerald-600">
                     <span>Change Due</span>
-                    <span>
-                      ${(completedOrder.changeAmount || 0).toFixed(2)}
-                    </span>
+                    <span>{formatReceipt(completedOrder.changeAmount || 0)}</span>
                   </div>
                 </>
               )}
@@ -254,7 +275,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 Total Amount Due
               </p>
               <p className="text-2xl font-bold text-indigo-600">
-                ${summary.total.toFixed(2)}
+                {format(summary.total)}
               </p>
             </div>
             <Badge variant="primary" size="md">
@@ -313,53 +334,43 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-700">
-                  Cash Received ($)
+                  Cash Received ({currencyMeta.symbol})
                 </label>
-                {cashAmountNum > 0 && (
+                {cashAmountDisplay > 0 && (
                   <span
                     className={`text-xs font-bold ${
-                      cashAmountNum >= summary.total
-                        ? "text-emerald-600"
-                        : "text-rose-600"
+                      !isCashInsufficient ? "text-emerald-600" : "text-rose-600"
                     }`}
                   >
-                    {cashAmountNum >= summary.total
-                      ? `Change: $${changeDue.toFixed(2)}`
-                      : `Short: $${(summary.total - cashAmountNum).toFixed(2)}`}
+                    {!isCashInsufficient
+                      ? `Change: ${formatDisplay(changeDueDisplay)}`
+                      : `Short: ${formatDisplay(totalDisplay - cashAmountDisplay)}`}
                   </span>
                 )}
               </div>
               <Input
                 type="number"
-                step="0.01"
+                step={currencyMeta.fractionDigits === 0 ? "1" : "0.01"}
                 min="0"
                 placeholder="Enter cash given by customer..."
                 value={cashTendered}
                 onChange={(e) => onSetCashTendered(e.target.value)}
               />
               <div className="flex items-center gap-1.5 overflow-x-auto pt-1">
-                {[
-                  summary.total,
-                  Math.ceil(summary.total / 5) * 5,
-                  Math.ceil(summary.total / 10) * 10,
-                  Math.ceil(summary.total / 20) * 20,
-                  50,
-                  100,
-                ]
-                  .filter(
-                    (val, idx, self) =>
-                      val >= summary.total && self.indexOf(val) === idx,
-                  )
-                  .map((val) => (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => onSetCashTendered(val.toFixed(2))}
-                      className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors"
-                    >
-                      ${val.toFixed(2)}
-                    </button>
-                  ))}
+                {quickCashValues.map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() =>
+                      onSetCashTendered(
+                        val.toFixed(currencyMeta.fractionDigits),
+                      )
+                    }
+                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors shrink-0"
+                  >
+                    {formatDisplay(val)}
+                  </button>
+                ))}
               </div>
             </div>
           )}

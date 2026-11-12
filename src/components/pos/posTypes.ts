@@ -1,4 +1,5 @@
 import type { Product } from "../../hooks/useCart";
+import type { CurrencyCode } from "../../utils/currency";
 
 export interface CompletedOrderInfo {
   orderNumber: string;
@@ -15,6 +16,8 @@ export interface CompletedOrderInfo {
   cashReceived?: number;
   changeAmount?: number;
   createdAt: string;
+  currency?: CurrencyCode;
+  exchangeRate?: number;
 }
 
 export interface TransactionItem {
@@ -28,4 +31,6 @@ export interface TransactionItem {
   payment_method: string;
   status: "Completed" | "Refunded" | "Pending";
   discount_percent?: number;
+  currency?: string | null;
+  exchange_rate?: number | null;
 }

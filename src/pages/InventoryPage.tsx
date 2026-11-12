@@ -24,6 +24,7 @@ import {
   InventoryFormModal,
 } from "../components/inventory";
 import { useStore } from "../context/StoreContext";
+import { useCurrency } from "../hooks/useCurrency";
 import {
   fetchProductsByStore,
   fetchStoreMetrics,
@@ -40,6 +41,7 @@ import { CreateStoreModal } from "../components/store/CreateStoreModal";
 
 export const InventoryPage: React.FC = () => {
   const { currentStore } = useStore();
+  const { format, fromDisplay, formatInput } = useCurrency();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -106,7 +108,7 @@ export const InventoryPage: React.FC = () => {
       header: "Price",
       key: "price",
       className: "font-semibold",
-      accessor: (item) => `$${item.price.toFixed(2)}`,
+      accessor: (item) => format(item.price),
     },
     {
       header: "Stock Level",
@@ -223,11 +225,13 @@ export const InventoryPage: React.FC = () => {
     }
 
     setSubmitting(true);
+    const enteredPrice = parseFloat(newProduct.price) || 0;
+    const basePriceIdr = Math.round(fromDisplay(enteredPrice) * 100) / 100;
     const payload = {
       sku: newProduct.sku,
       name: newProduct.name,
       category: newProduct.category,
-      price: parseFloat(newProduct.price) || 0,
+      price: basePriceIdr,
       stock: parseInt(newProduct.stock, 10) || 0,
       low_stock_threshold: parseInt(newProduct.low_stock_threshold, 10) || 5,
       barcode: newProduct.barcode ? parseInt(newProduct.barcode, 10) : 0,
@@ -254,7 +258,7 @@ export const InventoryPage: React.FC = () => {
       sku: item.sku || "",
       name: item.name || "",
       category: item.category || "",
-      price: item.price ? item.price.toString() : "",
+      price: item.price != null ? formatInput(item.price) : "",
       stock: item.stock ? item.stock.toString() : "",
       low_stock_threshold: item.low_stock_threshold
         ? item.low_stock_threshold.toString()
@@ -276,11 +280,13 @@ export const InventoryPage: React.FC = () => {
     }
 
     setSubmitting(true);
+    const enteredPrice = parseFloat(editProduct.price) || 0;
+    const basePriceIdr = Math.round(fromDisplay(enteredPrice) * 100) / 100;
     const payload = {
       sku: editProduct.sku,
       name: editProduct.name,
       category: editProduct.category,
-      price: parseFloat(editProduct.price) || 0,
+      price: basePriceIdr,
       stock: parseInt(editProduct.stock, 10) || 0,
       low_stock_threshold: parseInt(editProduct.low_stock_threshold, 10) || 5,
       barcode: editProduct.barcode ? parseInt(editProduct.barcode, 10) : 0,

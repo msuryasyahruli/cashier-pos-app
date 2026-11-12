@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, Button, Input } from "../";
 import { type InventoryFormState } from "./inventoryTypes";
+import { useCurrency } from "../../hooks/useCurrency";
 
 interface InventoryFormModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
   onChangeField,
   categories = [],
 }) => {
+  const { currencyMeta, exchangeRate, format, fromDisplay } = useCurrency();
   const categoryOptions = categories;
   const isSubmitDisabled =
     submitting ||
@@ -34,6 +36,10 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
     !formData.name ||
     !formData.category ||
     !formData.price;
+
+  const enteredPriceNum = parseFloat(formData.price);
+  const hasValidPrice = Number.isFinite(enteredPriceNum) && enteredPriceNum > 0;
+  const convertedBaseIdr = hasValidPrice ? fromDisplay(enteredPriceNum) : 0;
 
   return (
     <Modal
@@ -93,11 +99,18 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
         </div>
         <div>
           <Input
-            label="Price"
-            placeholder="Price"
+            label={`Price (${currencyMeta.code} - ${currencyMeta.symbol})`}
+            placeholder={`Price in ${currencyMeta.code}`}
             type="number"
+            min="0"
+            step={currencyMeta.fractionDigits === 0 ? "1" : "0.01"}
             value={formData.price}
             onChange={(e) => onChangeField("price", e.target.value)}
+            helperText={
+              currencyMeta.code !== "IDR" && hasValidPrice
+                ? `Saved in base IDR: Rp ${Math.round(convertedBaseIdr).toLocaleString("id-ID")} (1 ${currencyMeta.code} = Rp ${exchangeRate.toLocaleString("id-ID")}) • Display: ${format(convertedBaseIdr)}`
+                : undefined
+            }
           />
         </div>
         <div>

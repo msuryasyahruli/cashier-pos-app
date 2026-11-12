@@ -8,6 +8,13 @@ import React, {
 } from "react";
 import { supabase } from "../services/supabaseClient";
 import { useAuth } from "./AuthContext";
+import {
+  DEFAULT_CURRENCY,
+  DEFAULT_EXCHANGE_RATES,
+  getCurrencyMeta,
+  type CurrencyCode,
+  type ExchangeRatesMap,
+} from "../utils/currency";
 
 export interface StoreSettings {
   id: string;
@@ -15,6 +22,8 @@ export interface StoreSettings {
   branch_code: string;
   receipt_footer_note: string;
   default_sales_tax_rate: number;
+  currency?: CurrencyCode;
+  exchange_rates?: ExchangeRatesMap;
   created_at: string;
   updated_at: string;
   owner_id: string;
@@ -25,7 +34,68 @@ export interface CreateStoreInput {
   branch_code?: string;
   receipt_footer_note?: string;
   default_sales_tax_rate?: number;
+  currency?: CurrencyCode;
+  exchange_rates?: ExchangeRatesMap;
 }
+
+interface StoreCurrencyCacheEntry {
+  currency: CurrencyCode;
+  exchange_rates: ExchangeRatesMap;
+}
+
+const STORE_CURRENCY_MAP_KEY = "cashier_store_currencies";
+
+const getStoreCurrencyMap = (): Record<string, StoreCurrencyCacheEntry> => {
+  try {
+    return JSON.parse(
+      localStorage.getItem(STORE_CURRENCY_MAP_KEY) || "{}",
+    ) as Record<string, StoreCurrencyCacheEntry>;
+  } catch {
+    return {};
+  }
+};
+
+const saveStoreCurrencyEntry = (
+  storeId: string,
+  currency: CurrencyCode,
+  exchangeRates: ExchangeRatesMap,
+): void => {
+  if (!storeId) return;
+  try {
+    const map = getStoreCurrencyMap();
+    map[storeId] = {
+      currency,
+      exchange_rates: {
+        ...DEFAULT_EXCHANGE_RATES,
+        ...(map[storeId]?.exchange_rates || {}),
+        ...exchangeRates,
+        IDR: 1,
+      },
+    };
+    localStorage.setItem(STORE_CURRENCY_MAP_KEY, JSON.stringify(map));
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const hydrateStoreCurrency = (store: StoreSettings): StoreSettings => {
+  const map = getStoreCurrencyMap();
+  const cached = map[store.id];
+  const resolvedCurrency = getCurrencyMeta(
+    store.currency || cached?.currency || DEFAULT_CURRENCY,
+  ).code;
+  const resolvedRates: ExchangeRatesMap = {
+    ...DEFAULT_EXCHANGE_RATES,
+    ...(cached?.exchange_rates || {}),
+    ...(store.exchange_rates || {}),
+    IDR: 1,
+  };
+  return {
+    ...store,
+    currency: resolvedCurrency,
+    exchange_rates: resolvedRates,
+  };
+};
 
 interface StoreContextType {
   currentStore: StoreSettings | null;
@@ -44,6 +114,8 @@ interface StoreContextType {
         | "branch_code"
         | "receipt_footer_note"
         | "default_sales_tax_rate"
+        | "currency"
+        | "exchange_rates"
       >
     >,
   ) => Promise<boolean>;
@@ -94,7 +166,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       if (!fetchError && data && data.length > 0) {
-        loadedStores = data as StoreSettings[];
+        loadedStores = (data as StoreSettings[]).map(hydrateStoreCurrency);
       } else {
         // Check for local stores fallback if Supabase returns empty or table issue
         try {
@@ -102,7 +174,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
             getLocalStoresStorageKey(user.id),
           );
           if (localStr) {
-            loadedStores = JSON.parse(localStr);
+            loadedStores = (JSON.parse(localStr) as StoreSettings[]).map(
+              hydrateStoreCurrency,
+            );
           }
         } catch {
           // ignore localStorage parsing errors
@@ -156,7 +230,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
       setError(null);
       setSuccess(null);
 
-      const newStorePayload = {
+      const initialCurrency = getCurrencyMeta(
+        storeData.currency || DEFAULT_CURRENCY,
+      ).code;
+      const initialRates: ExchangeRatesMap = {
+        ...DEFAULT_EXCHANGE_RATES,
+        ...(storeData.exchange_rates || {}),
+        IDR: 1,
+      };
+
+      const basePayload = {
         name: storeData.name.trim(),
         branch_code: storeData.branch_code?.trim() || "MAIN-01",
         receipt_footer_note:
@@ -170,24 +253,30 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
 
       const { data, error: insertError } = await supabase
         .from("stores")
-        .insert([newStorePayload])
+        .insert([basePayload])
         .select()
         .single();
 
       if (!insertError && data) {
-        createdStore = data as StoreSettings;
+        createdStore = hydrateStoreCurrency({
+          ...(data as StoreSettings),
+          currency: initialCurrency,
+          exchange_rates: initialRates,
+        });
       } else {
         console.warn(
           "Supabase store insert error, creating locally:",
           insertError?.message,
         );
         // Fallback local store creation
-        createdStore = {
-          ...newStorePayload,
+        createdStore = hydrateStoreCurrency({
+          ...basePayload,
+          currency: initialCurrency,
+          exchange_rates: initialRates,
           id: `local-store-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        };
+        });
 
         const existingLocal = (() => {
           try {
@@ -207,6 +296,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       if (createdStore) {
+        saveStoreCurrencyEntry(
+          createdStore.id,
+          createdStore.currency || DEFAULT_CURRENCY,
+          createdStore.exchange_rates || DEFAULT_EXCHANGE_RATES,
+        );
         const nextStores = [...stores, createdStore];
         setStores(nextStores);
         setCurrentStore(createdStore);
@@ -235,6 +329,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
         | "branch_code"
         | "receipt_footer_note"
         | "default_sales_tax_rate"
+        | "currency"
+        | "exchange_rates"
       >
     >,
   ): Promise<boolean> => {
@@ -249,18 +345,19 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
       setSuccess(null);
 
       const now = new Date().toISOString();
-      const updatedFields = {
-        ...updates,
+      const { currency, exchange_rates, ...dbUpdates } = updates;
+      const dbPayload = {
+        ...dbUpdates,
         updated_at: now,
       };
 
       const isLocalStore = currentStore.id.startsWith("local-store-");
-      let updatedStore: StoreSettings | null = null;
+      let remoteData: StoreSettings | null = null;
 
       if (!isLocalStore) {
         const { data, error: updateError } = await supabase
           .from("stores")
-          .update(updatedFields)
+          .update(dbPayload)
           .eq("id", currentStore.id)
           .eq("owner_id", user.id)
           .select()
@@ -270,16 +367,29 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
           setError(updateError.message || "Failed to update store settings");
           return false;
         }
-        updatedStore = (data as StoreSettings) || {
-          ...currentStore,
-          ...updatedFields,
-        };
-      } else {
-        updatedStore = {
-          ...currentStore,
-          ...updatedFields,
-        };
+        if (data) {
+          remoteData = data as StoreSettings;
+        }
       }
+
+      const nextCurrency = getCurrencyMeta(
+        currency ?? currentStore.currency ?? DEFAULT_CURRENCY,
+      ).code;
+      const nextRates: ExchangeRatesMap = {
+        ...DEFAULT_EXCHANGE_RATES,
+        ...(currentStore.exchange_rates || {}),
+        ...(exchange_rates || {}),
+        IDR: 1,
+      };
+
+      saveStoreCurrencyEntry(currentStore.id, nextCurrency, nextRates);
+
+      const updatedStore: StoreSettings = hydrateStoreCurrency({
+        ...currentStore,
+        ...(remoteData || dbPayload),
+        currency: nextCurrency,
+        exchange_rates: nextRates,
+      });
 
       // Update in state
       const nextStores = stores.map((s) =>
