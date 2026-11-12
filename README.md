@@ -19,24 +19,24 @@ A modern, responsive Point of Sale application built with React, TypeScript, and
 
 <table>
   <tr>
-    <td><img src="src/assets/screenshots/login-notebill.web.id.png" alt="Login" width="280" /></td>
-    <td><img src="src/assets/screenshots/home-notebill.web.id.png" alt="Point of sale" width="280" /></td>
+    <td><img src="src/assets/screenshots/login-notebill.web.id.png" alt="Login" width="400" /></td>
+    <td><img src="src/assets/screenshots/home-notebill.web.id.png" alt="Point of sale" width="400" /></td>
   </tr>
   <tr>
-    <td><img src="src/assets/screenshots/order-items-notebill.web.id.png" alt="Order items" width="280" /></td>
-    <td><img src="src/assets/screenshots/payment-notebill.web.id.png" alt="Payment" width="280" /></td>
+    <td><img src="src/assets/screenshots/order-items-notebill.web.id.png" alt="Order items" width="400" /></td>
+    <td><img src="src/assets/screenshots/payment-notebill.web.id.png" alt="Payment" width="400" /></td>
   </tr>
   <tr>
-    <td><img src="src/assets/screenshots/bill-receipt-notebill.web.id.png" alt="Bill receipt" width="280" /></td>
-    <td><img src="src/assets/screenshots/transactions-notebill.web.id.png" alt="Transactions" width="280" /></td>
+    <td><img src="src/assets/screenshots/bill-receipt-notebill.web.id.png" alt="Bill receipt" width="400" /></td>
+    <td><img src="src/assets/screenshots/transactions-notebill.web.id.png" alt="Transactions" width="400" /></td>
   </tr>
   <tr>
-    <td><img src="src/assets/screenshots/detail-bills-notebill.web.id.png" alt="Transaction details" width="280" /></td>
-    <td><img src="src/assets/screenshots/invetories-notebill.web.id.png" alt="Inventory" width="280" /></td>
+    <td><img src="src/assets/screenshots/detail-bills-notebill.web.id.png" alt="Transaction details" width="400" /></td>
+    <td><img src="src/assets/screenshots/invetories-notebill.web.id.png" alt="Inventory" width="400" /></td>
   </tr>
   <tr>
-    <td><img src="src/assets/screenshots/settings-notebill.web.id.png" alt="Settings" width="280" /></td>
-    <td><img src="src/assets/screenshots/profile-notebill.web.id.png" alt="Profile" width="280" /></td>
+    <td><img src="src/assets/screenshots/settings-notebill.web.id.png" alt="Settings" width="400" /></td>
+    <td><img src="src/assets/screenshots/profile-notebill.web.id.png" alt="Profile" width="400" /></td>
   </tr>
 </table>
 

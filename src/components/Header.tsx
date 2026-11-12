@@ -1,7 +1,6 @@
 import React from "react";
 import { useDateTime } from "../hooks/useDateTime";
 import { Clock, Calendar, Bell, Search, Wifi, Menu } from "lucide-react";
-import { Badge } from "./Badge";
 import { StoreSelector } from "./store/StoreSelector";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -27,15 +26,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         </button>
 
         <div className="flex items-center gap-2">
-          <Badge
-            variant="success"
-            size="sm"
-            className="font-semibold gap-1.5 hidden sm:inline-flex"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Online
-          </Badge>
-
           {/* Interactive store switcher & current store badge */}
           <StoreSelector />
         </div>

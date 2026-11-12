@@ -7,6 +7,7 @@ import {
   Settings,
   LogOut,
   X,
+  ChevronUp,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Logo } from "./Logo";
@@ -23,9 +24,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
-  const [isLogoutConfirmationOpen, setIsLogoutConfirmationOpen] = React.useState(false);
+  const [isLogoutConfirmationOpen, setIsLogoutConfirmationOpen] =
+    React.useState(false);
   const [logoutSubmitting, setLogoutSubmitting] = React.useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
+  const profileMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isProfileMenuOpen) return;
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isProfileMenuOpen]);
   const userName =
     profile?.name ||
     profile?.username ||
@@ -126,60 +155,89 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </nav>
 
-        {/* Cashier user session card */}
-        <div className="relative p-3 xl:p-4 border-t border-slate-800">
+        {/* Cashier user session dropup */}
+        <div
+          className="relative p-3 xl:p-4 border-t border-slate-800"
+          ref={profileMenuRef}
+        >
+          {/* Dropup Menu Panel */}
           {isProfileMenuOpen && (
-            <div className="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-xl border border-slate-700 bg-slate-800 shadow-xl xl:left-4 xl:right-4">
-              <div className="border-b border-slate-700 px-3 py-2.5 md:hidden xl:block">
-                <p className="truncate text-xs font-semibold text-white">{userName}</p>
-                <p className="truncate text-[10px] text-slate-400">{user?.email}</p>
+            <div
+              role="menu"
+              className="absolute bottom-full left-3 right-3 mb-2 xl:left-4 xl:right-4 md:left-full md:bottom-3 md:right-auto md:w-56 md:ml-2 md:mb-0 rounded-xl border border-slate-700/80 bg-slate-800/95 backdrop-blur-md shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150"
+            >
+              <div className="px-3 py-2 border-b border-slate-700/70">
+                <p className="truncate text-xs font-semibold text-white">
+                  {userName}
+                </p>
+                <p className="truncate text-[10px] text-slate-400">
+                  {user?.email}
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsProfileMenuOpen(false);
-                  navigate("/profile");
-                  onCloseMobile?.();
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-slate-200 transition-colors hover:bg-slate-700"
-              >
-                <Settings size={15} /> Profile Settings
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsProfileMenuOpen(false);
-                  setIsLogoutConfirmationOpen(true);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/10"
-              >
-                <LogOut size={15} /> Log Out
-              </button>
+              <div className="mt-1 space-y-0.5">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    navigate("/profile");
+                    onCloseMobile?.();
+                  }}
+                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-xs font-medium text-slate-200 rounded-lg transition-colors hover:bg-slate-700/70"
+                  title="Profile Settings"
+                >
+                  <Settings size={15} className="shrink-0 text-slate-400" />
+                  <span>Profile Settings</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    setIsLogoutConfirmationOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-xs font-medium text-rose-300 rounded-lg transition-colors hover:bg-rose-500/15"
+                  title="Log Out"
+                >
+                  <LogOut size={15} className="shrink-0 text-rose-400" />
+                  <span>Log Out</span>
+                </button>
+              </div>
             </div>
           )}
-          <div className="bg-slate-800/60 rounded-xl p-2.5 xl:p-3 flex items-center justify-between gap-2">
+
+          <div className="bg-slate-800/60 hover:bg-slate-800/80 rounded-xl p-2 xl:p-2.5 border border-slate-700/40 transition-colors">
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen((open) => !open)}
               aria-expanded={isProfileMenuOpen}
+              aria-haspopup="true"
               aria-label="Open profile menu"
-              className="flex items-center gap-3 min-w-0 md:justify-center xl:justify-start w-full text-left"
+              className="flex items-center justify-between gap-2 min-w-0 md:justify-center xl:justify-between w-full text-left cursor-pointer"
             >
-              <div
-                title={`${userName} (Active Session)`}
-                className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 font-semibold flex items-center justify-center text-xs border border-indigo-500/30 shrink-0"
-              >
-                {userInitials}
+              <div className="flex items-center gap-3 min-w-0 md:justify-center xl:justify-start">
+                <div
+                  title={`${userName} (Active Session)`}
+                  className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 font-semibold flex items-center justify-center text-xs border border-indigo-500/30 shrink-0"
+                >
+                  {userInitials}
+                </div>
+                <div className="md:hidden xl:block min-w-0">
+                  <p className="text-xs font-semibold text-white truncate">
+                    {userName}
+                  </p>
+                  <p className="text-[10px] text-emerald-400 flex items-center gap-1 capitalize">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {userRole}
+                  </p>
+                </div>
               </div>
-              <div className="md:hidden xl:block min-w-0">
-                <p className="text-xs font-semibold text-white truncate">
-                  {userName}
-                </p>
-                <p className="text-[10px] text-emerald-400 flex items-center gap-1 capitalize">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {userRole}
-                </p>
-              </div>
+              <ChevronUp
+                size={14}
+                className={`text-slate-400 transition-transform duration-200 md:hidden xl:block shrink-0 ${
+                  isProfileMenuOpen ? "rotate-180" : ""
+                }`}
+              />
             </button>
           </div>
         </div>
