@@ -1,23 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, Button, Input } from "../components";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Save,
-  User,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Save, User } from "lucide-react";
 import { useUserSettings } from "../hooks";
 
 export const ProfilePage: React.FC = () => {
-  const {
-    userSettings,
-    loading,
-    saving,
-    error,
-    success,
-    updateUser,
-  } = useUserSettings();
+  const { userSettings, loading, saving, error, success, updateUser } =
+    useUserSettings();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
 
@@ -80,6 +68,7 @@ export const ProfilePage: React.FC = () => {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="e.g. john@example.com"
+                  disabled
                 />
                 <Input label="Role" value={userSettings.role ?? ""} disabled />
                 <div className="space-y-1.5">
@@ -87,7 +76,9 @@ export const ProfilePage: React.FC = () => {
                     Status
                   </span>
                   <div className="flex items-center gap-2 px-3.5 py-2.5 text-sm text-slate-700">
-                    <span className={`h-2 w-2 rounded-full ${userSettings.is_active ? "bg-emerald-500" : "bg-slate-400"}`} />
+                    <span
+                      className={`h-2 w-2 rounded-full ${userSettings.is_active ? "bg-emerald-500" : "bg-slate-400"}`}
+                    />
                     {userSettings.is_active ? "Active" : "Inactive"}
                   </div>
                 </div>
@@ -96,7 +87,13 @@ export const ProfilePage: React.FC = () => {
                 <Button
                   size="sm"
                   disabled={saving}
-                  icon={saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  icon={
+                    saving ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Save size={16} />
+                    )
+                  }
                   onClick={() => void updateUser({ username, email })}
                 >
                   {saving ? "Saving..." : "Save Profile"}
@@ -104,7 +101,9 @@ export const ProfilePage: React.FC = () => {
               </div>
             </>
           ) : (
-            <p className="text-sm text-slate-500">User profile data not found.</p>
+            <p className="text-sm text-slate-500">
+              User profile data not found.
+            </p>
           )}
         </Card>
       </div>
