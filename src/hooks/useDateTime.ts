@@ -7,7 +7,7 @@ export interface FormattedDateTime {
 }
 
 export function useDateTime(updateIntervalMs: number = 1000): FormattedDateTime {
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
 
   useEffect(() => {
     const timer = setInterval(() => {

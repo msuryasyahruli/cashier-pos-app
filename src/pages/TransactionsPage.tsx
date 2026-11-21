@@ -20,12 +20,9 @@ import {
   fetchTransactionMetrics,
   getTransactionCurrency,
   isLegacyUsdTransaction,
+  refundTransaction,
+  toLocalDateKey,
 } from "../services/transactionService";
-import {
-  adjustProductStock,
-  checkStoreIdSupport,
-} from "../services/productService";
-import { supabase } from "../services/supabaseClient";
 import type { TransactionItem } from "../components/pos";
 import {
   formatDate,
@@ -39,6 +36,7 @@ import { CreateStoreModal } from "../components/store/CreateStoreModal";
 
 export const TransactionsPage: React.FC = () => {
   const { currentStore } = useStore();
+  const storeId = currentStore?.id ?? null;
   const { currency, exchangeRates, format } = useCurrency();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,8 +48,8 @@ export const TransactionsPage: React.FC = () => {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
-  const [exportDate, setExportDate] = useState(
-    new Date().toISOString().slice(0, 10),
+  const [exportDate, setExportDate] = useState(() =>
+    toLocalDateKey(new Date()),
   );
   const [exporting, setExporting] = useState(false);
   const [selectedTx, setSelectedTx] = useState<TransactionItem | null>(null);
@@ -65,16 +63,22 @@ export const TransactionsPage: React.FC = () => {
     todaySales: 0,
     yesterdaySales: 0,
     completedCount: 0,
+    totalCount: 0,
   });
 
   const fetchMetrics = useCallback(async () => {
-    if (!currentStore?.id) {
-      setMetrics({ todaySales: 0, yesterdaySales: 0, completedCount: 0 });
+    if (!storeId) {
+      setMetrics({
+        todaySales: 0,
+        yesterdaySales: 0,
+        completedCount: 0,
+        totalCount: 0,
+      });
       return;
     }
-    const m = await fetchTransactionMetrics(currentStore.id);
+    const m = await fetchTransactionMetrics(storeId);
     setMetrics(m);
-  }, [currentStore?.id]);
+  }, [storeId]);
 
   const columns: Column<TransactionItem>[] = [
     {
@@ -186,7 +190,7 @@ export const TransactionsPage: React.FC = () => {
   }, [selectedTx]);
 
   const fetchTransactions = useCallback(async () => {
-    if (!currentStore?.id) {
+    if (!storeId) {
       setTransactions([]);
       setTotalCount(0);
       setLoading(false);
@@ -194,15 +198,12 @@ export const TransactionsPage: React.FC = () => {
     }
 
     setLoading(true);
-    const { data, count, error } = await fetchTransactionsByStore(
-      currentStore.id,
-      {
-        page: currentPage,
-        pageSize,
-        search: searchTerm,
-        statusFilter,
-      },
-    );
+    const { data, count, error } = await fetchTransactionsByStore(storeId, {
+      page: currentPage,
+      pageSize,
+      search: searchTerm,
+      statusFilter,
+    });
 
     if (error) {
       console.error("Error fetching transactions:", error);
@@ -211,7 +212,7 @@ export const TransactionsPage: React.FC = () => {
       setTotalCount(count);
     }
     setLoading(false);
-  }, [currentStore?.id, currentPage, pageSize, statusFilter, searchTerm]);
+  }, [storeId, currentPage, pageSize, statusFilter, searchTerm]);
 
   useEffect(() => {
     fetchTransactions();
@@ -270,65 +271,14 @@ export const TransactionsPage: React.FC = () => {
   const handleRefund = async () => {
     if (!selectedTx || selectedTx.status !== "Completed") return;
     try {
-      const detail = await fetchTransactionDetailFromSupabase(
-        selectedTx.order_number,
-        selectedTx.id,
-        selectedTx.items_count,
-        selectedTx.total,
-        selectedTx.discount_percent,
+      const { error: refundError } = await refundTransaction(
+        selectedTx,
+        storeId ?? undefined,
       );
 
-      if (!detail.isFallback && detail?.items?.length > 0) {
-        const hasStoreId = currentStore?.id
-          ? await checkStoreIdSupport()
-          : false;
-
-        const restorePromises = detail.items.map(async (item) => {
-          if (item.id) {
-            const { error } = await adjustProductStock(
-              item.id,
-              item.quantity,
-              currentStore?.id,
-            );
-            if (error) {
-              console.warn(
-                `Failed to restore stock for product ${item.id}:`,
-                error,
-              );
-            }
-            return;
-          }
-
-          if (!item.name) return;
-          let query = supabase
-            .from("products")
-            .select("id")
-            .eq("name", item.name)
-            .limit(1);
-          if (hasStoreId && currentStore?.id) {
-            query = query.eq("store_id", currentStore.id);
-          }
-
-          const { data: prods } = await query;
-          if (prods && prods.length > 0) {
-            await adjustProductStock(
-              prods[0].id,
-              item.quantity,
-              currentStore?.id,
-            );
-          }
-        });
-        await Promise.all(restorePromises);
-      }
-
-      const { error: updateError } = await supabase
-        .from("transactions")
-        .update({ status: "Refunded" })
-        .eq("id", selectedTx.id);
-
-      if (updateError) {
-        console.error("Error updating transaction status:", updateError);
-        alert(`Failed to refund: ${updateError.message}`);
+      if (refundError) {
+        console.error("Error refunding transaction:", refundError);
+        alert(`Failed to refund: ${refundError.message}`);
         return;
       }
 
@@ -455,7 +405,7 @@ export const TransactionsPage: React.FC = () => {
               {metrics.completedCount}
             </span>
             <span className="text-xs text-slate-400 font-medium">
-              out of {totalCount} total
+              out of {metrics.totalCount} total
             </span>
           </div>
         </Card>

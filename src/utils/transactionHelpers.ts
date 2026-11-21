@@ -2,6 +2,7 @@ import {
   DEFAULT_CURRENCY,
   convertFromIdr,
   getCurrencyMeta,
+  getExchangeRate,
   type CurrencyCode,
   type ExchangeRatesMap,
 } from "./currency";
@@ -110,14 +111,27 @@ export const exportTransactionsCSV = (
     ];
   });
 
-  const totalItems = data.reduce(
+  const legacyUsdRate = getExchangeRate("USD", exchangeRates);
+  const completedRows = data.filter((tx) => tx.status !== "Refunded");
+  const totalItems = completedRows.reduce(
     (sum, tx) => sum + (Number(tx.items_count) || 0),
     0,
   );
-  const totalSalesIdr = data.reduce(
-    (sum, tx) => sum + (Number(tx.total) || 0),
-    0,
-  );
+  const totalSalesIdr = completedRows.reduce((sum, tx) => {
+    const amount = Number(tx.total) || 0;
+    const info = getTransactionCurrency(
+      tx.id,
+      tx.order_number,
+      tx.currency,
+      tx.exchange_rate,
+      currency,
+      exchangeRates ? exchangeRates[currency] : undefined,
+    );
+    const amountIdr = isLegacyUsdTransaction(tx.total, tx.currency, info)
+      ? amount * legacyUsdRate
+      : amount;
+    return sum + amountIdr;
+  }, 0);
   const summaryRows = [
     [],
     ["Summary", "Value"],

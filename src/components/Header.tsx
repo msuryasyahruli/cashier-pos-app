@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDateTime } from "../hooks/useDateTime";
-import { Clock, Calendar, Bell, Search, Wifi, Menu } from "lucide-react";
+import { Clock, Calendar, Search, Wifi, WifiOff, Menu } from "lucide-react";
 import { StoreSelector } from "./store/StoreSelector";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -9,7 +10,29 @@ export interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
+  const navigate = useNavigate();
   const { time, date } = useDateTime();
+  const [quickSearch, setQuickSearch] = useState("");
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const handleQuickSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = quickSearch.trim();
+    navigate(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : "/");
+  };
 
   return (
     <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-700 px-4 md:px-6 flex items-center justify-between shrink-0 shadow-sm z-30">
@@ -32,14 +55,19 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       </div>
 
       {/* Center: Search input */}
-      <div className="hidden md:flex items-center w-64 lg:w-96 relative">
+      <form
+        onSubmit={handleQuickSearchSubmit}
+        className="hidden md:flex items-center w-64 lg:w-96 relative"
+      >
         <Search size={16} className="absolute left-3.5 text-slate-400" />
         <input
           type="text"
-          placeholder="Quick search products, SKUs, or orders..."
+          value={quickSearch}
+          onChange={(e) => setQuickSearch(e.target.value)}
+          placeholder="Quick search products or SKUs..."
           className="w-full bg-slate-100/80 hover:bg-slate-100 border border-slate-200/60 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-800 placeholder-slate-400 transition-all outline-none"
         />
-      </div>
+      </form>
 
       {/* Right: Live time & network status */}
       <div className="flex items-center gap-3 sm:gap-5">
@@ -57,18 +85,17 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <button
-            title="System Notifications"
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors relative"
-          >
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full"></span>
-          </button>
           <div
-            title="Connected to cloud database"
-            className="p-2 text-emerald-600 bg-emerald-50 rounded-xl border border-emerald-200/60"
+            title={
+              isOnline ? "Online — connected to network" : "Offline — no network"
+            }
+            className={`p-2 rounded-xl border ${
+              isOnline
+                ? "text-emerald-600 bg-emerald-50 border-emerald-200/60"
+                : "text-rose-600 bg-rose-50 border-rose-200/60"
+            }`}
           >
-            <Wifi size={16} />
+            {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
           </div>
         </div>
       </div>

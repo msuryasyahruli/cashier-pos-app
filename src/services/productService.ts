@@ -5,6 +5,12 @@ import type { Product } from "../hooks/useCart";
 // Cache only the database capability check; product ownership is stored in Supabase.
 let isStoreIdColumnSupported: boolean | null = null;
 
+const isLocalStoreId = (storeId?: string | null): boolean =>
+  Boolean(storeId && storeId.startsWith("local-store-"));
+
+const sanitizePostgrestSearch = (raw: string): string =>
+  raw.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ");
+
 const storeMigrationError = new Error(
   "Product store integration is not configured. Apply the store_id migration to the products table.",
 );
@@ -50,7 +56,7 @@ export const fetchProductsByStore = async (
   storeId: string,
   options: FetchProductsOptions = {},
 ): Promise<FetchProductsResult> => {
-  if (!storeId) {
+  if (!storeId || isLocalStoreId(storeId)) {
     return { data: [], count: 0, error: null };
   }
 
@@ -69,8 +75,11 @@ export const fetchProductsByStore = async (
     query = query.eq("category", options.category);
   }
 
-  if (options.search?.trim()) {
-    const term = `%${options.search.trim()}%`;
+  const sanitizedSearch = options.search
+    ? sanitizePostgrestSearch(options.search)
+    : "";
+  if (sanitizedSearch) {
+    const term = `%${sanitizedSearch}%`;
     query = query.or(
       `name.ilike.${term},sku.ilike.${term},category.ilike.${term}`,
     );
@@ -104,21 +113,41 @@ export const fetchProductsByStore = async (
 export const fetchStoreMetrics = async (
   storeId: string,
 ): Promise<{ totalSkus: number; lowStockCount: number; totalUnits: number }> => {
-  if (!storeId) {
+  if (!storeId || isLocalStoreId(storeId)) {
     return { totalSkus: 0, lowStockCount: 0, totalUnits: 0 };
   }
 
-  const { data } = await fetchProductsByStore(storeId);
-  const products = data || [];
+  const hasDbColumn = await checkStoreIdSupport();
+  if (!hasDbColumn) {
+    return { totalSkus: 0, lowStockCount: 0, totalUnits: 0 };
+  }
 
-  const totalSkus = products.length;
-  const lowStockCount = products.filter(
-    (p) => p.stock <= (p.low_stock_threshold ?? 5),
-  ).length;
-  const totalUnits = products.reduce(
-    (acc, p) => acc + (Number(p.stock) || 0),
-    0,
-  );
+  const pageSize = 1000;
+  let from = 0;
+  let totalSkus = 0;
+  let lowStockCount = 0;
+  let totalUnits = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("stock, low_stock_threshold")
+      .eq("store_id", storeId)
+      .range(from, from + pageSize - 1);
+
+    if (error || !data || data.length === 0) break;
+
+    totalSkus += data.length;
+    for (const p of data) {
+      const stock = Number(p.stock) || 0;
+      const threshold = p.low_stock_threshold ?? 5;
+      if (stock <= threshold) lowStockCount++;
+      totalUnits += stock;
+    }
+
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
 
   return { totalSkus, lowStockCount, totalUnits };
 };
@@ -132,9 +161,16 @@ export const addProductToStore = async (
     price: number;
     stock: number;
     low_stock_threshold: number;
-    barcode: number;
+    barcode: string | number | null;
   },
 ): Promise<{ data: InventoryItem | null; error: any }> => {
+  if (isLocalStoreId(storeId)) {
+    return {
+      data: null,
+      error: new Error("Cannot add products to an unsynced local store."),
+    };
+  }
+
   const hasDbColumn = await checkStoreIdSupport();
 
   if (!hasDbColumn) {
@@ -166,24 +202,35 @@ export const addProductToStore = async (
 export const updateProductInStore = async (
   productId: string,
   updates: Partial<InventoryItem>,
+  storeId?: string,
 ): Promise<{ data: InventoryItem | null; error: any }> => {
-  const { data, error } = await supabase
+  let query = supabase
     .from("products")
     .update({
       ...updates,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", productId)
-    .select()
-    .maybeSingle();
+    .eq("id", productId);
 
+  if (storeId && !isLocalStoreId(storeId) && (await checkStoreIdSupport())) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data, error } = await query.select().maybeSingle();
   return { data: data as InventoryItem | null, error };
 };
 
 export const deleteProductFromStore = async (
   productId: string,
+  storeId?: string,
 ): Promise<{ error: any }> => {
-  const { error } = await supabase.from("products").delete().eq("id", productId);
+  let query = supabase.from("products").delete().eq("id", productId);
+
+  if (storeId && !isLocalStoreId(storeId) && (await checkStoreIdSupport())) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { error } = await query;
   return { error };
 };
 
@@ -192,7 +239,30 @@ export const adjustProductStock = async (
   delta: number,
   storeId?: string,
 ): Promise<{ error: any }> => {
-  const hasDbColumn = storeId ? await checkStoreIdSupport() : false;
+  if (storeId && !isLocalStoreId(storeId)) {
+    const { error: rpcError } = await supabase.rpc("adjust_product_stock", {
+      p_product_id: productId,
+      p_delta: delta,
+      p_store_id: storeId,
+    });
+
+    if (!rpcError) {
+      return { error: null };
+    }
+
+    const msg = (rpcError.message || "").toLowerCase();
+    const isMissingRpc =
+      rpcError.code === "PGRST202" ||
+      rpcError.code === "42883" ||
+      msg.includes("adjust_product_stock");
+
+    if (!isMissingRpc) {
+      return { error: rpcError };
+    }
+  }
+
+  const hasDbColumn =
+    storeId && !isLocalStoreId(storeId) ? await checkStoreIdSupport() : false;
 
   let selectQuery = supabase
     .from("products")
@@ -236,7 +306,7 @@ export const mapInventoryToPosProducts = (items: InventoryItem[]): Product[] => 
     price: item.price,
     stock: item.stock,
     low_stock_threshold: item.low_stock_threshold,
-    barcode: item.barcode,
+    barcode: item.barcode ?? undefined,
   }));
 };
 

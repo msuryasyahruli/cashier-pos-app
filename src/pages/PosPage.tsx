@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart, type Product } from "../hooks/useCart";
 import { Button, Input } from "../components";
 import {
@@ -34,11 +34,15 @@ import { createNextOrderNumber } from "../services/orderNumberService";
 
 export const PosPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentStore } = useStore();
+  const storeId = currentStore?.id ?? null;
   const { currency, exchangeRate, format, fromDisplay, formatInput } =
     useCurrency();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(
+    () => searchParams.get("q") || "",
+  );
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isCreateStoreOpen, setIsCreateStoreOpen] = useState<boolean>(false);
   const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
@@ -58,42 +62,7 @@ export const PosPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   const { profile } = useAuth();
-
-  const fetchProducts = async () => {
-    if (!currentStore?.id) {
-      setProducts([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const { data, error } = await fetchProductsByStore(currentStore.id, {
-      category: selectedCategory,
-      search: searchQuery,
-    });
-
-    if (error) {
-      console.error("Error fetching POS products:", error);
-    } else {
-      setProducts(mapInventoryToPosProducts(data));
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    const timeout = setTimeout(fetchProducts, 300);
-    return () => clearTimeout(timeout);
-  }, [currentStore?.id, selectedCategory, searchQuery]);
-
-  useEffect(() => {
-    if (!currentStore?.id) {
-      setCategories([]);
-      return;
-    }
-    fetchCategoriesByStore(currentStore.id).then(({ data }) => {
-      setCategories(getCategoryNames(data));
-    });
-  }, [currentStore?.id]);
+  const prevStoreIdRef = useRef<string | null>(storeId);
 
   const taxRate =
     currentStore?.default_sales_tax_rate != null
@@ -109,6 +78,65 @@ export const PosPage: React.FC = () => {
     setDiscountPercent,
     summary,
   } = useCart(taxRate);
+
+  // Sync URL ?q= parameter when navigated from global Header search
+  const urlQuery = searchParams.get("q");
+  useEffect(() => {
+    if (urlQuery !== null) {
+      setSearchQuery(urlQuery);
+    }
+  }, [urlQuery]);
+
+  // Clear cart and category filter when switching active stores to prevent cross-store checkout
+  useEffect(() => {
+    if (prevStoreIdRef.current !== storeId) {
+      prevStoreIdRef.current = storeId;
+      clearCart();
+      setSelectedCategory("All");
+    }
+  }, [storeId, clearCart]);
+
+  const fetchProducts = useCallback(async () => {
+    if (!storeId) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await fetchProductsByStore(storeId, {
+      category: selectedCategory,
+      search: searchQuery,
+    });
+
+    if (error) {
+      console.error("Error fetching POS products:", error);
+    } else {
+      setProducts(mapInventoryToPosProducts(data));
+    }
+    setLoading(false);
+  }, [storeId, selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      void fetchProducts();
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [fetchProducts]);
+
+  useEffect(() => {
+    if (!storeId) {
+      setCategories([]);
+      return;
+    }
+    let active = true;
+    fetchCategoriesByStore(storeId).then(({ data }) => {
+      if (active) setCategories(getCategoryNames(data));
+    });
+    return () => {
+      active = false;
+    };
+  }, [storeId]);
 
   const handleOpenCheckout = () => {
     setCashTendered(formatInput(summary.total));

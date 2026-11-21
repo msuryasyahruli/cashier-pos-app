@@ -128,6 +128,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [stores, setStores] = useState<StoreSettings[]>([]);
   const [currentStore, setCurrentStore] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -135,13 +136,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const getActiveStoreStorageKey = (userId: string) =>
-    `cashier_active_store_${userId}`;
-  const getLocalStoresStorageKey = (userId: string) =>
-    `cashier_local_stores_${userId}`;
+  const getActiveStoreStorageKey = (uid: string) =>
+    `cashier_active_store_${uid}`;
+  const getLocalStoresStorageKey = (uid: string) =>
+    `cashier_local_stores_${uid}`;
 
   const fetchStores = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setStores([]);
       setCurrentStore(null);
       setLoading(false);
@@ -156,7 +157,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
       const { data, error: fetchError } = await supabase
         .from("stores")
         .select("*")
-        .eq("owner_id", user.id)
+        .eq("owner_id", userId)
         .order("created_at", { ascending: true });
 
       let loadedStores: StoreSettings[] = [];
@@ -171,7 +172,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
         // Check for local stores fallback if Supabase returns empty or table issue
         try {
           const localStr = localStorage.getItem(
-            getLocalStoresStorageKey(user.id),
+            getLocalStoresStorageKey(userId),
           );
           if (localStr) {
             loadedStores = (JSON.parse(localStr) as StoreSettings[]).map(
@@ -187,12 +188,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
 
       if (loadedStores.length > 0) {
         const savedActiveId = localStorage.getItem(
-          getActiveStoreStorageKey(user.id),
+          getActiveStoreStorageKey(userId),
         );
         const matched = loadedStores.find((s) => s.id === savedActiveId);
         const active = matched || loadedStores[0];
         setCurrentStore(active);
-        localStorage.setItem(getActiveStoreStorageKey(user.id), active.id);
+        localStorage.setItem(getActiveStoreStorageKey(userId), active.id);
       } else {
         setCurrentStore(null);
       }
@@ -202,7 +203,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     fetchStores();
@@ -251,11 +252,33 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
 
       let createdStore: StoreSettings | null = null;
 
-      const { data, error: insertError } = await supabase
+      let { data, error: insertError } = await supabase
         .from("stores")
-        .insert([basePayload])
+        .insert([
+          {
+            ...basePayload,
+            currency: initialCurrency,
+            exchange_rates: initialRates,
+          },
+        ])
         .select()
         .single();
+
+      if (
+        insertError &&
+        (insertError.code === "42703" ||
+          insertError.code === "PGRST204" ||
+          insertError.message?.includes("currency") ||
+          insertError.message?.includes("exchange_rates"))
+      ) {
+        const retry = await supabase
+          .from("stores")
+          .insert([basePayload])
+          .select()
+          .single();
+        data = retry.data;
+        insertError = retry.error;
+      }
 
       if (!insertError && data) {
         createdStore = hydrateStoreCurrency({
@@ -346,32 +369,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
 
       const now = new Date().toISOString();
       const { currency, exchange_rates, ...dbUpdates } = updates;
-      const dbPayload = {
-        ...dbUpdates,
-        updated_at: now,
-      };
-
-      const isLocalStore = currentStore.id.startsWith("local-store-");
-      let remoteData: StoreSettings | null = null;
-
-      if (!isLocalStore) {
-        const { data, error: updateError } = await supabase
-          .from("stores")
-          .update(dbPayload)
-          .eq("id", currentStore.id)
-          .eq("owner_id", user.id)
-          .select()
-          .maybeSingle();
-
-        if (updateError) {
-          setError(updateError.message || "Failed to update store settings");
-          return false;
-        }
-        if (data) {
-          remoteData = data as StoreSettings;
-        }
-      }
-
       const nextCurrency = getCurrencyMeta(
         currency ?? currentStore.currency ?? DEFAULT_CURRENCY,
       ).code;
@@ -381,6 +378,54 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({
         ...(exchange_rates || {}),
         IDR: 1,
       };
+
+      const dbPayload = {
+        ...dbUpdates,
+        updated_at: now,
+      };
+
+      const isLocalStore = currentStore.id.startsWith("local-store-");
+      let remoteData: StoreSettings | null = null;
+
+      if (!isLocalStore) {
+        let { data, error: updateError } = await supabase
+          .from("stores")
+          .update({
+            ...dbPayload,
+            currency: nextCurrency,
+            exchange_rates: nextRates,
+          })
+          .eq("id", currentStore.id)
+          .eq("owner_id", user.id)
+          .select()
+          .maybeSingle();
+
+        if (
+          updateError &&
+          (updateError.code === "42703" ||
+            updateError.code === "PGRST204" ||
+            updateError.message?.includes("currency") ||
+            updateError.message?.includes("exchange_rates"))
+        ) {
+          const retry = await supabase
+            .from("stores")
+            .update(dbPayload)
+            .eq("id", currentStore.id)
+            .eq("owner_id", user.id)
+            .select()
+            .maybeSingle();
+          data = retry.data;
+          updateError = retry.error;
+        }
+
+        if (updateError) {
+          setError(updateError.message || "Failed to update store settings");
+          return false;
+        }
+        if (data) {
+          remoteData = data as StoreSettings;
+        }
+      }
 
       saveStoreCurrencyEntry(currentStore.id, nextCurrency, nextRates);
 

@@ -23,7 +23,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-supabase
+supabase/*
+!supabase/schema.sql
 docs
 anti-slop
 .codex

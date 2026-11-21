@@ -41,6 +41,7 @@ import { CreateStoreModal } from "../components/store/CreateStoreModal";
 
 export const InventoryPage: React.FC = () => {
   const { currentStore } = useStore();
+  const storeId = currentStore?.id ?? null;
   const { format, fromDisplay, formatInput } = useCurrency();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -61,26 +62,26 @@ export const InventoryPage: React.FC = () => {
   const [metricTotalUnits, setMetricTotalUnits] = useState<number>(0);
 
   const fetchMetrics = useCallback(async () => {
-    if (!currentStore?.id) {
+    if (!storeId) {
       setMetricTotalSkus(0);
       setMetricLowStockCount(0);
       setMetricTotalUnits(0);
       return;
     }
-    const metrics = await fetchStoreMetrics(currentStore.id);
+    const metrics = await fetchStoreMetrics(storeId);
     setMetricTotalSkus(metrics.totalSkus);
     setMetricLowStockCount(metrics.lowStockCount);
     setMetricTotalUnits(metrics.totalUnits);
-  }, [currentStore?.id]);
+  }, [storeId]);
 
   const fetchCategories = useCallback(async () => {
-    if (!currentStore?.id) {
+    if (!storeId) {
       setCategories([]);
       return;
     }
-    const { data } = await fetchCategoriesByStore(currentStore.id);
+    const { data } = await fetchCategoriesByStore(storeId);
     setCategories(data);
-  }, [currentStore?.id]);
+  }, [storeId]);
 
   const columns: Column<InventoryItem>[] = [
     {
@@ -167,7 +168,7 @@ export const InventoryPage: React.FC = () => {
     useState<InventoryFormState>(EMPTY_FORM);
 
   const fetchInventory = useCallback(async () => {
-    if (!currentStore?.id) {
+    if (!storeId) {
       setInventory([]);
       setTotalCount(0);
       setLoading(false);
@@ -175,7 +176,7 @@ export const InventoryPage: React.FC = () => {
     }
 
     setLoading(true);
-    const { data, count, error } = await fetchProductsByStore(currentStore.id, {
+    const { data, count, error } = await fetchProductsByStore(storeId, {
       page: currentPage,
       pageSize,
       search: searchTerm,
@@ -188,7 +189,7 @@ export const InventoryPage: React.FC = () => {
       setTotalCount(count);
     }
     setLoading(false);
-  }, [currentStore?.id, currentPage, pageSize, searchTerm]);
+  }, [storeId, currentPage, pageSize, searchTerm]);
 
   useEffect(() => {
     fetchInventory();
@@ -227,14 +228,18 @@ export const InventoryPage: React.FC = () => {
     setSubmitting(true);
     const enteredPrice = parseFloat(newProduct.price) || 0;
     const basePriceIdr = Math.round(fromDisplay(enteredPrice) * 100) / 100;
+    const parsedStock = parseInt(newProduct.stock, 10);
+    const parsedThreshold = parseInt(newProduct.low_stock_threshold, 10);
     const payload = {
-      sku: newProduct.sku,
-      name: newProduct.name,
+      sku: newProduct.sku.trim(),
+      name: newProduct.name.trim(),
       category: newProduct.category,
       price: basePriceIdr,
-      stock: parseInt(newProduct.stock, 10) || 0,
-      low_stock_threshold: parseInt(newProduct.low_stock_threshold, 10) || 5,
-      barcode: newProduct.barcode ? parseInt(newProduct.barcode, 10) : 0,
+      stock: Number.isNaN(parsedStock) ? 0 : Math.max(0, parsedStock),
+      low_stock_threshold: Number.isNaN(parsedThreshold)
+        ? 5
+        : Math.max(0, parsedThreshold),
+      barcode: newProduct.barcode.trim() || null,
     };
 
     const { error } = await addProductToStore(currentStore.id, payload);
@@ -259,11 +264,12 @@ export const InventoryPage: React.FC = () => {
       name: item.name || "",
       category: item.category || "",
       price: item.price != null ? formatInput(item.price) : "",
-      stock: item.stock ? item.stock.toString() : "",
-      low_stock_threshold: item.low_stock_threshold
-        ? item.low_stock_threshold.toString()
-        : "",
-      barcode: item.barcode ? item.barcode.toString() : "",
+      stock: item.stock != null ? String(item.stock) : "",
+      low_stock_threshold:
+        item.low_stock_threshold != null
+          ? String(item.low_stock_threshold)
+          : "",
+      barcode: item.barcode != null ? String(item.barcode) : "",
     });
     setIsEditOpen(true);
   };
@@ -282,17 +288,25 @@ export const InventoryPage: React.FC = () => {
     setSubmitting(true);
     const enteredPrice = parseFloat(editProduct.price) || 0;
     const basePriceIdr = Math.round(fromDisplay(enteredPrice) * 100) / 100;
+    const parsedStock = parseInt(editProduct.stock, 10);
+    const parsedThreshold = parseInt(editProduct.low_stock_threshold, 10);
     const payload = {
-      sku: editProduct.sku,
-      name: editProduct.name,
+      sku: editProduct.sku.trim(),
+      name: editProduct.name.trim(),
       category: editProduct.category,
       price: basePriceIdr,
-      stock: parseInt(editProduct.stock, 10) || 0,
-      low_stock_threshold: parseInt(editProduct.low_stock_threshold, 10) || 5,
-      barcode: editProduct.barcode ? parseInt(editProduct.barcode, 10) : 0,
+      stock: Number.isNaN(parsedStock) ? 0 : Math.max(0, parsedStock),
+      low_stock_threshold: Number.isNaN(parsedThreshold)
+        ? 5
+        : Math.max(0, parsedThreshold),
+      barcode: editProduct.barcode.trim() || null,
     };
 
-    const { error } = await updateProductInStore(editId, payload);
+    const { error } = await updateProductInStore(
+      editId,
+      payload,
+      storeId ?? undefined,
+    );
 
     setSubmitting(false);
 
@@ -310,7 +324,7 @@ export const InventoryPage: React.FC = () => {
 
   const handleDeleteProduct = async (id: string) => {
     setDeleteSubmitting(true);
-    const { error } = await deleteProductFromStore(id);
+    const { error } = await deleteProductFromStore(id, storeId ?? undefined);
     setDeleteSubmitting(false);
 
     if (error) {

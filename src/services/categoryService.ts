@@ -26,6 +26,9 @@ export const fetchCategoriesByStore = async (
   storeId: string,
 ): Promise<{ data: StoreCategory[]; error: any }> => {
   if (!storeId) return { data: [], error: null };
+  if (storeId.startsWith("local-store-")) {
+    return { data: readLocalCategories()[storeId] || [], error: null };
+  }
 
   const { data, error } = await supabase
     .from("categories")
@@ -71,13 +74,15 @@ export const createCategoryForStore = async (
     };
   }
 
-  const { data, error } = await supabase
-    .from("categories")
-    .insert([{ store_id: storeId, name: normalizedName }])
-    .select("id, store_id, name")
-    .maybeSingle();
+  if (!storeId.startsWith("local-store-")) {
+    const { data, error } = await supabase
+      .from("categories")
+      .insert([{ store_id: storeId, name: normalizedName }])
+      .select("id, store_id, name")
+      .maybeSingle();
 
-  if (!error && data) return { data: data as StoreCategory, error: null };
+    if (!error && data) return { data: data as StoreCategory, error: null };
+  }
 
   const category: StoreCategory = {
     id: `local-category-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,

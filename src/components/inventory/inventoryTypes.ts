@@ -6,7 +6,7 @@ export interface InventoryItem {
   price: number;
   stock: number;
   low_stock_threshold: number;
-  barcode: number;
+  barcode: string | number | null;
 }
 
 export interface InventoryFormState {

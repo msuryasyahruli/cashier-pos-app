@@ -25,7 +25,8 @@ interface UseUserSettingsReturn {
 }
 
 export const useUserSettings = (): UseUserSettingsReturn => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
+  const userId = user?.id ?? null;
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,7 +39,7 @@ export const useUserSettings = (): UseUserSettingsReturn => {
   };
 
   const fetchUser = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setUserSettings(null);
       setLoading(false);
       return;
@@ -51,7 +52,7 @@ export const useUserSettings = (): UseUserSettingsReturn => {
       const { data, error: fetchError } = await supabase
         .from("users")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", userId)
         .maybeSingle();
 
       if (fetchError) {
@@ -65,7 +66,7 @@ export const useUserSettings = (): UseUserSettingsReturn => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     fetchUser();
@@ -107,6 +108,7 @@ export const useUserSettings = (): UseUserSettingsReturn => {
       }
 
       setUserSettings(data);
+      await refreshProfile();
       setSuccess("User profile updated successfully!");
 
       // Auto-clear success message after 3 seconds

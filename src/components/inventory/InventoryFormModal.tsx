@@ -137,7 +137,8 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
           <Input
             label="Barcode"
             placeholder="Barcode (optional)"
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={formData.barcode}
             onChange={(e) => onChangeField("barcode", e.target.value)}
           />

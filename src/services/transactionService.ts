@@ -6,11 +6,19 @@ import {
   getExchangeRate,
   type CurrencyCode,
 } from "../utils/currency";
+import { fetchTransactionDetailFromSupabase } from "./transactionStorage";
+import { adjustProductStock, checkStoreIdSupport } from "./productService";
 
 // Cached column support check
 let isStoreIdColumnSupported: boolean | null = null;
 const TRANSACTION_STORE_MAP_KEY = "cashier_transaction_store_map";
 const TRANSACTION_CURRENCY_MAP_KEY = "cashier_transaction_currency_map";
+
+const isLocalStoreId = (storeId?: string | null): boolean =>
+  Boolean(storeId && storeId.startsWith("local-store-"));
+
+const sanitizePostgrestSearch = (raw: string): string =>
+  raw.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ");
 
 export interface TransactionCurrencyRecord {
   currency: CurrencyCode;
@@ -190,7 +198,7 @@ const getLocalDateRange = (dateStr: string): { start: Date; end: Date } | null =
   return { start, end };
 };
 
-const toLocalDateKey = (date: Date): string => {
+export const toLocalDateKey = (date: Date): string => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
@@ -201,9 +209,14 @@ export const fetchTransactionsByStore = async (
   storeId: string,
   options: FetchTransactionsOptions = {},
 ): Promise<FetchTransactionsResult> => {
-  if (!storeId) return { data: [], count: 0, error: null };
+  if (!storeId || isLocalStoreId(storeId)) {
+    return { data: [], count: 0, error: null };
+  }
 
   const hasDbColumn = await checkTxStoreIdSupport();
+  const sanitizedSearch = options.search
+    ? sanitizePostgrestSearch(options.search)
+    : "";
 
   const buildBaseQuery = (countMode = false) => {
     let q = supabase
@@ -218,8 +231,8 @@ export const fetchTransactionsByStore = async (
     if (options.statusFilter && options.statusFilter !== "All") {
       q = q.eq("status", options.statusFilter);
     }
-    if (options.search?.trim()) {
-      const term = `%${options.search.trim()}%`;
+    if (sanitizedSearch) {
+      const term = `%${sanitizedSearch}%`;
       q = q.or(
         `order_number.ilike.${term},cashier.ilike.${term},payment_method.ilike.${term}`,
       );
@@ -263,8 +276,8 @@ export const fetchTransactionsByStore = async (
   if (options.statusFilter && options.statusFilter !== "All") {
     q = q.eq("status", options.statusFilter);
   }
-  if (options.search?.trim()) {
-    const term = `%${options.search.trim()}%`;
+  if (sanitizedSearch) {
+    const term = `%${sanitizedSearch}%`;
     q = q.or(
       `order_number.ilike.${term},cashier.ilike.${term},payment_method.ilike.${term}`,
     );
@@ -300,73 +313,215 @@ export interface TransactionMetrics {
   todaySales: number;
   yesterdaySales: number;
   completedCount: number;
+  totalCount: number;
 }
 
 export const fetchTransactionMetrics = async (
   storeId: string,
 ): Promise<TransactionMetrics> => {
-  const empty = { todaySales: 0, yesterdaySales: 0, completedCount: 0 };
-  if (!storeId) return empty;
+  const empty: TransactionMetrics = {
+    todaySales: 0,
+    yesterdaySales: 0,
+    completedCount: 0,
+    totalCount: 0,
+  };
+  if (!storeId || isLocalStoreId(storeId)) return empty;
 
   try {
     const hasDbColumn = await checkTxStoreIdSupport();
-
-    // Select all columns so currency fields are included when the migration
-    // exists, without failing on databases that lack them.
-    let q = supabase.from("transactions").select("*");
-    if (hasDbColumn) q = q.eq("store_id", storeId);
-
-    const { data, error } = await q;
-    if (error || !data) return empty;
-
-    const transactions = (hasDbColumn
-      ? data
-      : data.filter((tx) =>
-          belongsToStore(tx, storeId, getTransactionStoreMap()),
-        )) as TransactionItem[];
+    const storeMap = hasDbColumn ? {} : getTransactionStoreMap();
     const today = new Date();
     const todayStr = toLocalDateKey(today);
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = toLocalDateKey(yesterday);
     const legacyUsdRate = getExchangeRate("USD");
+
+    const pageSize = 1000;
+    let from = 0;
     let todaySum = 0;
     let yesterdaySum = 0;
     let completed = 0;
+    let totalCount = 0;
 
-    for (const tx of transactions) {
-      const isCompleted = tx.status === "Completed";
-      const txDateObj = tx.created_at ? new Date(tx.created_at) : null;
-      const txDate =
-        txDateObj && !Number.isNaN(txDateObj.getTime())
-          ? toLocalDateKey(txDateObj)
-          : "";
-      if (isCompleted) {
-        completed++;
-        const amount = Number(tx.total) || 0;
-        const info = getTransactionCurrency(
-          tx.id,
-          tx.order_number,
-          tx.currency,
-          tx.exchange_rate,
-        );
-        const amountIdr = isLegacyUsdTransaction(amount, tx.currency, info)
-          ? amount * legacyUsdRate
-          : amount;
-        if (txDate === todayStr) todaySum += amountIdr;
-        if (txDate === yesterdayStr) yesterdaySum += amountIdr;
+    while (true) {
+      // Select all columns so currency fields are included when the migration
+      // exists, without failing on databases that lack them.
+      let q = supabase
+        .from("transactions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (hasDbColumn) q = q.eq("store_id", storeId);
+
+      const { data, error } = await q;
+      if (error || !data || data.length === 0) break;
+
+      const batch = (
+        hasDbColumn
+          ? data
+          : data.filter((tx) => belongsToStore(tx, storeId, storeMap))
+      ) as TransactionItem[];
+
+      totalCount += batch.length;
+
+      for (const tx of batch) {
+        const isCompleted = tx.status === "Completed";
+        const txDateObj = tx.created_at ? new Date(tx.created_at) : null;
+        const txDate =
+          txDateObj && !Number.isNaN(txDateObj.getTime())
+            ? toLocalDateKey(txDateObj)
+            : "";
+        if (isCompleted) {
+          completed++;
+          const amount = Number(tx.total) || 0;
+          const info = getTransactionCurrency(
+            tx.id,
+            tx.order_number,
+            tx.currency,
+            tx.exchange_rate,
+          );
+          const amountIdr = isLegacyUsdTransaction(amount, tx.currency, info)
+            ? amount * legacyUsdRate
+            : amount;
+          if (txDate === todayStr) todaySum += amountIdr;
+          if (txDate === yesterdayStr) yesterdaySum += amountIdr;
+        }
       }
+
+      if (data.length < pageSize) break;
+      from += pageSize;
     }
 
     return {
       todaySales: todaySum,
       yesterdaySales: yesterdaySum,
       completedCount: completed,
+      totalCount,
     };
   } catch (e) {
     console.error("Error fetching transaction metrics:", e);
     return empty;
   }
+};
+
+/**
+ * Refund a completed transaction atomically (via RPC when available) or by
+ * conditionally updating status to Refunded FIRST before restoring product stock.
+ */
+export const refundTransaction = async (
+  tx: TransactionItem,
+  storeId?: string,
+): Promise<{ error: any }> => {
+  if (!tx || tx.status !== "Completed") {
+    return { error: new Error("Only completed transactions can be refunded.") };
+  }
+
+  if (storeId && !isLocalStoreId(storeId)) {
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      "refund_transaction",
+      {
+        p_transaction_id: tx.id,
+        p_store_id: storeId,
+      },
+    );
+
+    if (!rpcError) {
+      if (rpcResult === false) {
+        return {
+          error: new Error("Transaction is already refunded or not found."),
+        };
+      }
+      return { error: null };
+    }
+
+    const msg = (rpcError.message || "").toLowerCase();
+    const isMissingRpc =
+      rpcError.code === "PGRST202" ||
+      rpcError.code === "42883" ||
+      msg.includes("refund_transaction");
+
+    if (!isMissingRpc) {
+      return { error: rpcError };
+    }
+  }
+
+  // Fallback: update status conditionally FIRST so concurrent/failed refunds
+  // can never inflate stock.
+  const hasTxStoreId =
+    storeId && !isLocalStoreId(storeId) ? await checkTxStoreIdSupport() : false;
+
+  let updateQuery = supabase
+    .from("transactions")
+    .update({ status: "Refunded" })
+    .eq("id", tx.id)
+    .eq("status", "Completed");
+
+  if (hasTxStoreId && storeId) {
+    updateQuery = updateQuery.eq("store_id", storeId);
+  }
+
+  const { data: updatedTx, error: updateError } = await updateQuery
+    .select("id")
+    .maybeSingle();
+
+  if (updateError) {
+    return { error: updateError };
+  }
+  if (!updatedTx) {
+    return {
+      error: new Error("Transaction is already refunded or not found."),
+    };
+  }
+
+  const detail = await fetchTransactionDetailFromSupabase(
+    tx.order_number,
+    tx.id,
+    tx.items_count,
+    tx.total,
+    tx.discount_percent,
+  );
+
+  if (!detail.isFallback && detail?.items?.length > 0) {
+    const hasProductStoreId =
+      storeId && !isLocalStoreId(storeId) ? await checkStoreIdSupport() : false;
+
+    await Promise.all(
+      detail.items.map(async (item) => {
+        if (item.id) {
+          const { error } = await adjustProductStock(
+            item.id,
+            item.quantity,
+            storeId,
+          );
+          if (error) {
+            console.warn(
+              `Failed to restore stock for product ${item.id}:`,
+              error,
+            );
+          }
+          return;
+        }
+
+        if (!item.name) return;
+        let query = supabase
+          .from("products")
+          .select("id")
+          .eq("name", item.name)
+          .limit(1);
+        if (hasProductStoreId && storeId) {
+          query = query.eq("store_id", storeId);
+        }
+
+        const { data: prods } = await query;
+        if (prods && prods.length > 0) {
+          await adjustProductStock(prods[0].id, item.quantity, storeId);
+        }
+      }),
+    );
+  }
+
+  return { error: null };
 };
 
 /** Attach store_id to a new transaction payload when saving (if column exists). */

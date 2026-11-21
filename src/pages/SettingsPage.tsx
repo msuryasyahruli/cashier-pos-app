@@ -69,6 +69,11 @@ export const SettingsPage: React.FC = () => {
     ...DEFAULT_EXCHANGE_RATES,
   });
   const [rateInput, setRateInput] = useState("1");
+  const [hardwarePrefs, setHardwarePrefs] = useState({
+    autoOpenCashDrawer: false,
+    autoPrintCardReceipt: false,
+    barcodeScanSound: false,
+  });
 
   // New store form state (when setting up initial store)
   const [newStoreName, setNewStoreName] = useState("");
@@ -101,6 +106,27 @@ export const SettingsPage: React.FC = () => {
       setCurrency(activeCurrency);
       setExchangeRates(mergedRates);
       setRateInput(String(getExchangeRate(activeCurrency, mergedRates)));
+      try {
+        const savedPrefs = localStorage.getItem(
+          `cashier_store_hardware_${store.id}`,
+        );
+        if (savedPrefs) {
+          setHardwarePrefs({
+            autoOpenCashDrawer: false,
+            autoPrintCardReceipt: false,
+            barcodeScanSound: false,
+            ...JSON.parse(savedPrefs),
+          });
+        } else {
+          setHardwarePrefs({
+            autoOpenCashDrawer: false,
+            autoPrintCardReceipt: false,
+            barcodeScanSound: false,
+          });
+        }
+      } catch {
+        // ignore storage errors
+      }
     }
   }, [store]);
 
@@ -149,6 +175,17 @@ export const SettingsPage: React.FC = () => {
       [currency]: validRate,
       IDR: 1,
     };
+
+    if (store?.id) {
+      try {
+        localStorage.setItem(
+          `cashier_store_hardware_${store.id}`,
+          JSON.stringify(hardwarePrefs),
+        );
+      } catch {
+        // ignore storage errors
+      }
+    }
 
     await updateStore({
       name,
@@ -481,6 +518,13 @@ export const SettingsPage: React.FC = () => {
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
+                  checked={hardwarePrefs.autoOpenCashDrawer}
+                  onChange={(e) =>
+                    setHardwarePrefs((prev) => ({
+                      ...prev,
+                      autoOpenCashDrawer: e.target.checked,
+                    }))
+                  }
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
                 <span>
@@ -490,6 +534,13 @@ export const SettingsPage: React.FC = () => {
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
+                  checked={hardwarePrefs.autoPrintCardReceipt}
+                  onChange={(e) =>
+                    setHardwarePrefs((prev) => ({
+                      ...prev,
+                      autoPrintCardReceipt: e.target.checked,
+                    }))
+                  }
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
                 <span>
@@ -499,6 +550,13 @@ export const SettingsPage: React.FC = () => {
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
+                  checked={hardwarePrefs.barcodeScanSound}
+                  onChange={(e) =>
+                    setHardwarePrefs((prev) => ({
+                      ...prev,
+                      barcodeScanSound: e.target.checked,
+                    }))
+                  }
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
                 <span>Enable sound feedback on barcode scan</span>
