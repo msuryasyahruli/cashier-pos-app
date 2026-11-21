@@ -35,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   };
 
   return (
-    <header className="h-16 bg-surface border-b border-divider px-4 md:px-6 flex items-center justify-between shrink-0 shadow-sm z-30">
+    <header className="h-16 bg-surface border-b border-divider px-4 md:px-6 flex items-center justify-between space-x-4 shrink-0 shadow-sm z-30">
       {/* Left: Quick search / branch title & mobile toggle */}
       <div className="flex items-center gap-3 md:gap-4">
         {/* Menu Toggle Button: visible below md breakpoint */}
@@ -70,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       </form>
 
       {/* Right: Live time & network status */}
-      <div className="flex items-center gap-3 sm:gap-5">
+      <div className="flex items-center gap-3 sm:gap-4">
         <div className="hidden lg:flex items-center gap-4 text-xs text-ink-secondary bg-canvas px-3.5 py-1.5 rounded-xl border border-divider">
           <div className="flex items-center gap-1.5 font-medium">
             <Calendar size={14} className="text-ink-secondary" />
@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <ThemeToggle />
           <div
             title={

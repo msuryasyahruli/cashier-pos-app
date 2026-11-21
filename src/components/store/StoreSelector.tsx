@@ -60,13 +60,16 @@ export const StoreSelector: React.FC = () => {
         title="Switch or manage active store"
       >
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
           <Store size={14} className="text-brand shrink-0" />
           <span className="font-semibold text-ink-primary max-w-[130px] sm:max-w-[180px] truncate">
             {currentStore?.name || "Select Store"}
           </span>
           {currentStore?.branch_code && (
-            <Badge variant="neutral" size="sm" className="hidden sm:inline-flex py-0 px-1.5 text-[10px]">
+            <Badge
+              variant="neutral"
+              size="sm"
+              className="hidden sm:inline-flex py-0 px-1.5 text-[10px]"
+            >
               {currentStore.branch_code}
             </Badge>
           )}
@@ -109,7 +112,9 @@ export const StoreSelector: React.FC = () => {
                     <Store
                       size={14}
                       className={
-                        isSelected ? "text-brand-tintText" : "text-ink-secondary"
+                        isSelected
+                          ? "text-brand-tintText"
+                          : "text-ink-secondary"
                       }
                     />
                     <div className="truncate">
@@ -152,4 +157,3 @@ export const StoreSelector: React.FC = () => {
     </div>
   );
 };
-
