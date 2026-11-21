@@ -87,13 +87,13 @@ export const InventoryPage: React.FC = () => {
     {
       header: "SKU",
       key: "sku",
-      className: "font-mono font-medium text-slate-500",
+      className: "font-mono font-medium text-ink-secondary",
       accessor: "sku",
     },
     {
       header: "Product Name",
       key: "name",
-      className: "font-semibold text-slate-900",
+      className: "font-semibold text-ink-primary",
       accessor: "name",
     },
     {
@@ -108,13 +108,13 @@ export const InventoryPage: React.FC = () => {
     {
       header: "Price",
       key: "price",
-      className: "font-semibold",
+      className: "font-semibold text-ink-primary",
       accessor: (item) => format(item.price),
     },
     {
       header: "Stock Level",
       key: "stock",
-      className: "font-bold text-slate-800",
+      className: "font-bold text-ink-primary",
       accessor: (item) => `${item.stock} units`,
     },
     {
@@ -342,16 +342,16 @@ export const InventoryPage: React.FC = () => {
   // If no store is selected or set up yet
   if (!currentStore) {
     return (
-      <div className="flex-1 p-6 bg-slate-50 overflow-y-auto flex items-center justify-center">
+      <div className="flex-1 p-6 bg-canvas overflow-y-auto flex items-center justify-center">
         <Card className="max-w-md w-full text-center space-y-4 py-8">
-          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+          <div className="w-14 h-14 bg-brand-tint text-brand-tintText rounded-2xl flex items-center justify-center mx-auto shadow-inner">
             <Store size={28} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800">
+            <h2 className="text-lg font-bold text-ink-primary">
               No Store Selected
             </h2>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            <p className="text-xs text-ink-secondary mt-1 max-w-sm mx-auto">
               Please set up or select a store to start managing products,
               prices, and stock inventory.
             </p>
@@ -375,12 +375,12 @@ export const InventoryPage: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6">
+    <div className="flex-1 p-4 sm:p-6 bg-canvas overflow-y-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-bold text-ink-primary tracking-tight">
               Inventory & Stock
             </h1>
             <Badge
@@ -391,9 +391,9 @@ export const InventoryPage: React.FC = () => {
               {currentStore.name}
             </Badge>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-ink-secondary mt-1">
             Displaying products for store:{" "}
-            <span className="font-semibold text-slate-700">
+            <span className="font-semibold text-ink-primary">
               {currentStore.name}
             </span>{" "}
             ({currentStore.branch_code || "MAIN-01"})
@@ -412,42 +412,42 @@ export const InventoryPage: React.FC = () => {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-brand-tint text-brand-tintText flex items-center justify-center shrink-0">
             <Package size={22} />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500">
+            <span className="text-xs font-semibold text-ink-secondary">
               Total SKUs ({currentStore.name})
             </span>
-            <p className="text-2xl font-extrabold text-slate-900 font-mono">
+            <p className="text-2xl font-extrabold text-ink-primary font-mono">
               {metricTotalSkus}
             </p>
           </div>
         </Card>
 
         <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-status-warningBg text-status-warningText flex items-center justify-center shrink-0">
             <AlertTriangle size={22} />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500">
+            <span className="text-xs font-semibold text-ink-secondary">
               Low Stock Alerts
             </span>
-            <p className="text-2xl font-extrabold text-amber-600 font-mono">
+            <p className="text-2xl font-extrabold text-status-warningText font-mono">
               {metricLowStockCount}
             </p>
           </div>
         </Card>
 
         <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-status-successBg text-status-successText flex items-center justify-center shrink-0">
             <Package size={22} />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500">
+            <span className="text-xs font-semibold text-ink-secondary">
               Total Units in Stock
             </span>
-            <p className="text-2xl font-extrabold text-slate-900 font-mono">
+            <p className="text-2xl font-extrabold text-ink-primary font-mono">
               {metricTotalUnits}
             </p>
           </div>
@@ -456,7 +456,7 @@ export const InventoryPage: React.FC = () => {
 
       {/* Table Card */}
       <Card className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-divider">
           <div className="w-full sm:w-80">
             <Input
               placeholder={`Search in ${currentStore.name}...`}

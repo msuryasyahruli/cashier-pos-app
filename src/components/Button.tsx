@@ -26,11 +26,11 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const variantStyles = {
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 hover:shadow-md',
-    secondary: 'bg-slate-800 hover:bg-slate-900 text-white shadow-slate-200',
-    outline: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-100 shadow-none',
-    danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-200',
-    ghost: 'bg-transparent hover:bg-slate-100 text-slate-700 shadow-none',
+    primary: 'bg-brand hover:bg-brand-hover text-ink-onPrimary shadow-brand/20 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-ring',
+    secondary: 'bg-ink-primary hover:bg-ink-primary/90 text-surface shadow-divider/40 focus:outline-none focus:ring-2 focus:ring-brand-ring',
+    outline: 'border border-divider bg-surface hover:bg-surface-hover text-ink-primary shadow-none focus:outline-none focus:ring-2 focus:ring-brand-ring',
+    danger: 'bg-action-danger hover:bg-action-dangerHover text-ink-onPrimary shadow-status-dangerBg focus:outline-none focus:ring-2 focus:ring-status-dangerBg',
+    ghost: 'bg-transparent hover:bg-surface-hover text-ink-primary shadow-none focus:outline-none focus:ring-2 focus:ring-brand-ring',
   };
 
   const widthStyle = fullWidth ? 'w-full' : '';

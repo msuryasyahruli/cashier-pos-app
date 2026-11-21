@@ -82,8 +82,8 @@ export const CreateStoreModal: React.FC<CreateStoreModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Set Up Your Store">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex items-center gap-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-700">
-          <Store size={20} className="shrink-0 text-indigo-600" />
+        <div className="flex items-center gap-3 p-3 bg-status-infoBg border border-status-infoText/20 rounded-xl text-xs text-status-infoText">
+          <Store size={20} className="shrink-0 text-status-infoText" />
           <span>
             Create a store to manage products, track inventory, and take orders
             tailored to this location.
@@ -91,7 +91,7 @@ export const CreateStoreModal: React.FC<CreateStoreModalProps> = ({
         </div>
 
         {localError && (
-          <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
+          <div className="flex items-center gap-2 p-3 bg-status-dangerBg border border-status-dangerText/20 rounded-xl text-xs text-status-dangerText">
             <AlertCircle size={16} className="shrink-0" />
             <span>{localError}</span>
           </div>
@@ -126,7 +126,7 @@ export const CreateStoreModal: React.FC<CreateStoreModalProps> = ({
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="modal-store-currency"
-                className="text-xs font-semibold text-slate-700"
+                className="text-xs font-semibold text-ink-secondary"
               >
                 Currency
               </label>
@@ -136,7 +136,7 @@ export const CreateStoreModal: React.FC<CreateStoreModalProps> = ({
                 onChange={(e) =>
                   handleCurrencyChange(e.target.value as CurrencyCode)
                 }
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                className="w-full rounded-xl border border-divider bg-surface px-3.5 py-2 text-sm text-ink-primary outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-ring"
               >
                 {SUPPORTED_CURRENCIES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -169,7 +169,7 @@ export const CreateStoreModal: React.FC<CreateStoreModalProps> = ({
           />
         </div>
 
-        <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-divider">
           <Button
             type="button"
             variant="secondary"

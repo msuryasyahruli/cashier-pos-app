@@ -19,11 +19,11 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const variantStyles = {
-    primary: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800',
-    success: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800',
-    warning: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800',
-    danger: 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800',
-    neutral: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700',
+    primary: 'bg-brand-tint text-brand-tintText border border-brand-ring/60',
+    success: 'bg-status-successBg text-status-successText border border-status-successText/20',
+    warning: 'bg-status-warningBg text-status-warningText border border-status-warningText/20',
+    danger: 'bg-status-dangerBg text-status-dangerText border border-status-dangerText/20',
+    neutral: 'bg-canvas text-ink-secondary border border-divider',
   };
 
   return (

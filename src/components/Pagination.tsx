@@ -1,5 +1,10 @@
 import React from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 
 export interface PaginationProps {
   currentPage: number;
@@ -24,7 +29,11 @@ export const Pagination: React.FC<PaginationProps> = ({
   className = "",
   disabled = false,
 }) => {
-  if (totalPages <= 1 && (!totalItems || totalItems === 0) && !onPageSizeChange) {
+  if (
+    totalPages <= 1 &&
+    (!totalItems || totalItems === 0) &&
+    !onPageSizeChange
+  ) {
     return null;
   }
 
@@ -74,32 +83,46 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div
-      className={`flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 ${className}`}
+      className={`flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-divider text-xs text-ink-secondary ${className}`}
     >
       {/* Information text */}
       <div className="flex items-center gap-3">
         {totalItems !== undefined ? (
           <span>
-            Showing <span className="font-semibold text-slate-800">{startItem ?? 0}</span> to{" "}
-            <span className="font-semibold text-slate-800">{endItem ?? 0}</span> of{" "}
-            <span className="font-semibold text-slate-800">{totalItems}</span> results
+            Showing{" "}
+            <span className="font-semibold text-ink-primary">
+              {startItem ?? 0}
+            </span>{" "}
+            to{" "}
+            <span className="font-semibold text-ink-primary">
+              {endItem ?? 0}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-ink-primary">{totalItems}</span>{" "}
+            results
           </span>
         ) : (
           <span>
-            Page <span className="font-semibold text-slate-800">{currentPage}</span> of{" "}
-            <span className="font-semibold text-slate-800">{totalPages || 1}</span>
+            Page{" "}
+            <span className="font-semibold text-ink-primary">
+              {currentPage}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-ink-primary">
+              {totalPages || 1}
+            </span>
           </span>
         )}
 
         {/* Rows per page selector */}
         {onPageSizeChange && pageSize && (
           <div className="flex items-center gap-1.5 ml-2">
-            <span className="text-slate-500">Rows:</span>
+            <span className="text-ink-secondary">Rows:</span>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               disabled={disabled}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-700 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-50 transition-colors"
+              className="bg-surface border border-divider rounded-lg px-2 py-1 text-xs text-ink-primary focus:outline-hidden focus:ring-2 focus:ring-brand-ring focus:border-brand disabled:opacity-50 transition-colors"
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>
@@ -116,7 +139,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(1)}
           disabled={disabled || currentPage <= 1}
-          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg border border-divider bg-surface text-ink-secondary hover:bg-surface-hover hover:text-ink-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           title="First page"
         >
           <ChevronsLeft size={14} />
@@ -124,7 +147,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={disabled || currentPage <= 1}
-          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg border border-divider bg-surface text-ink-secondary hover:bg-surface-hover hover:text-ink-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           title="Previous page"
         >
           <ChevronLeft size={14} />
@@ -133,7 +156,10 @@ export const Pagination: React.FC<PaginationProps> = ({
         <div className="flex items-center gap-1 px-1">
           {pages.map((p, idx) =>
             p === "..." ? (
-              <span key={`ellipsis-${idx}`} className="px-1.5 text-slate-400 select-none">
+              <span
+                key={`ellipsis-${idx}`}
+                className="px-1.5 text-ink-secondary select-none"
+              >
                 …
               </span>
             ) : (
@@ -143,8 +169,8 @@ export const Pagination: React.FC<PaginationProps> = ({
                 disabled={disabled}
                 className={`min-w-7 h-7 px-2 rounded-lg font-medium transition-colors text-xs ${
                   currentPage === p
-                    ? "bg-indigo-600 text-white shadow-xs font-semibold"
-                    : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-brand text-ink-onPrimary shadow-xs font-semibold"
+                    : "bg-surface border border-divider text-ink-primary hover:bg-surface-hover"
                 } disabled:cursor-not-allowed`}
               >
                 {p}
@@ -156,7 +182,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={disabled || currentPage >= totalPages}
-          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg border border-divider bg-surface text-ink-secondary hover:bg-surface-hover hover:text-ink-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           title="Next page"
         >
           <ChevronRight size={14} />
@@ -164,7 +190,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(totalPages)}
           disabled={disabled || currentPage >= totalPages}
-          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg border border-divider bg-surface text-ink-secondary hover:bg-surface-hover hover:text-ink-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           title="Last page"
         >
           <ChevronsRight size={14} />
@@ -173,4 +199,3 @@ export const Pagination: React.FC<PaginationProps> = ({
     </div>
   );
 };
-

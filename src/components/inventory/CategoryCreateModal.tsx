@@ -53,7 +53,7 @@ export const CategoryCreateModal: React.FC<CategoryCreateModalProps> = ({
       }
     >
       <div className="space-y-3">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink-secondary">
           This category will only be available in {storeName}.
         </p>
         <Input

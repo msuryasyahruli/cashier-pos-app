@@ -374,16 +374,16 @@ export const PosPage: React.FC = () => {
   // If no store is selected or set up
   if (!currentStore) {
     return (
-      <div className="flex-1 flex items-center justify-center p-6 bg-slate-100">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-md w-full text-center space-y-4">
-          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+      <div className="flex-1 flex items-center justify-center p-6 bg-canvas">
+        <div className="bg-surface p-8 rounded-2xl shadow-sm border border-divider max-w-md w-full text-center space-y-4">
+          <div className="w-14 h-14 bg-brand-tint text-brand-tintText rounded-2xl flex items-center justify-center mx-auto shadow-inner">
             <Store size={28} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800">
+            <h2 className="text-lg font-bold text-ink-primary">
               No Store Selected
             </h2>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-ink-secondary mt-1">
               Please set up or select a store to start taking orders and
               accessing the POS terminal.
             </p>
@@ -407,7 +407,7 @@ export const PosPage: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col sm:flex-row h-full overflow-hidden bg-slate-100">
+    <div className="flex-1 flex flex-col sm:flex-row h-full overflow-hidden bg-canvas">
       {/* Left Area: Catalog & Product Search */}
       <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-auto min-w-0 space-y-4">
         {/* Top Controls: Search & Category Chips */}
@@ -440,19 +440,19 @@ export const PosPage: React.FC = () => {
         {/* Product Grid */}
         <div className="flex-1">
           {loading ? (
-            <div className="h-64 flex flex-col items-center justify-center text-slate-400">
-              <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+            <div className="h-64 flex flex-col items-center justify-center text-ink-secondary">
+              <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mb-3"></div>
               <p className="text-xs font-medium">
                 Loading products for {currentStore.name}...
               </p>
             </div>
           ) : products.length === 0 ? (
-            <div className="h-64 flex flex-col items-center justify-center text-slate-400 text-center p-6 bg-white rounded-2xl border border-dashed border-slate-200">
-              <Store size={32} className="text-slate-300 mb-2" />
-              <p className="font-semibold text-slate-700">
+            <div className="h-64 flex flex-col items-center justify-center text-ink-secondary text-center p-6 bg-surface rounded-2xl border border-dashed border-divider">
+              <Store size={32} className="text-ink-secondary mb-2" />
+              <p className="font-semibold text-ink-primary">
                 No products found in {currentStore.name}
               </p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs">
+              <p className="text-xs text-ink-secondary mt-1 max-w-xs">
                 {searchQuery || selectedCategory !== "All"
                   ? "Try adjusting your filter or search query."
                   : "Start by adding products to this store in Inventory."}
@@ -491,14 +491,14 @@ export const PosPage: React.FC = () => {
         className={[
           "sm:hidden fixed bottom-5 right-5 z-20",
           "flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl",
-          "bg-indigo-600 text-white font-semibold text-sm",
+          "bg-brand hover:bg-brand-hover text-ink-onPrimary font-semibold text-sm",
           "active:scale-95 transition-transform",
         ].join(" ")}
         aria-label="Open cart"
       >
         <ShoppingCart size={20} />
         {items.length > 0 && (
-          <span className="bg-white text-indigo-600 text-xs font-bold px-2 py-0.5 rounded-full">
+          <span className="bg-surface text-brand text-xs font-bold px-2 py-0.5 rounded-full">
             {summary.totalQuantity}
           </span>
         )}

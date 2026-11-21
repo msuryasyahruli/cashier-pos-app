@@ -164,34 +164,34 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     >
       {paymentSuccess && completedOrder ? (
         <div className="space-y-4 py-1">
-          <div className="text-center pb-3 border-b border-slate-100">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-2.5 animate-bounce">
+          <div className="text-center pb-3 border-b border-divider">
+            <div className="w-14 h-14 rounded-full bg-status-successBg text-status-successText flex items-center justify-center mx-auto mb-2.5 animate-bounce">
               <CheckCircle2 size={32} />
             </div>
-            <h4 className="text-lg font-bold text-slate-900">
+            <h4 className="text-lg font-bold text-ink-primary">
               Payment Successful!
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-ink-secondary mt-0.5">
               Transaction recorded to database and stock updated.
             </p>
           </div>
 
           {/* Receipt Card */}
-          <div className="receipt-print-content bg-slate-50 rounded-xl p-4 border border-slate-200/80 space-y-3 font-mono text-xs">
-            <div className="text-center pb-2 border-b border-dashed border-slate-300">
-              <h4 className="font-bold text-base text-slate-900">
+          <div className="receipt-print-content bg-surface-hover rounded-xl p-4 border border-divider space-y-3 font-mono text-xs">
+            <div className="text-center pb-2 border-b border-dashed border-divider">
+              <h4 className="font-bold text-base text-ink-primary">
                 {storeName}
               </h4>
-              <p className="text-[10px] text-slate-500 font-sans">
+              <p className="text-[10px] text-ink-secondary font-sans">
                 Sales Receipt
               </p>
             </div>
-            <div className="flex justify-between items-center pb-2 border-b border-dashed border-slate-300">
+            <div className="flex justify-between items-center pb-2 border-b border-dashed border-divider">
               <div>
-                <span className="font-bold text-slate-800">
+                <span className="font-bold text-ink-primary">
                   {completedOrder.orderNumber}
                 </span>
-                <p className="text-[10px] text-slate-500 font-sans">
+                <p className="text-[10px] text-ink-secondary font-sans">
                   Cashier: {cashierName} • {completedOrder.createdAt}
                 </p>
               </div>
@@ -205,12 +205,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {completedOrder.items.map((item) => (
                 <div
                   key={item.product.id}
-                  className="flex justify-between items-center text-slate-700"
+                  className="flex justify-between items-center text-ink-secondary"
                 >
                   <span className="truncate pr-2">
                     {item.quantity}x {item.product.name}
                   </span>
-                  <span className="font-semibold text-slate-900 shrink-0">
+                  <span className="font-semibold text-ink-primary shrink-0">
                     {formatReceipt(item.product.price * item.quantity)}
                   </span>
                 </div>
@@ -218,35 +218,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
 
             {/* Financial summary */}
-            <div className="pt-2 border-t border-dashed border-slate-300 space-y-1 text-slate-600">
+            <div className="pt-2 border-t border-dashed border-divider space-y-1 text-ink-secondary">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>{formatReceipt(completedOrder.summary.subtotal)}</span>
+                <span className="text-ink-primary">{formatReceipt(completedOrder.summary.subtotal)}</span>
               </div>
               {completedOrder.summary.discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-600">
+                <div className="flex justify-between text-status-infoText">
                   <span>Discount</span>
                   <span>-{formatReceipt(completedOrder.summary.discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Tax ({completedOrder.summary.taxRate * 100}%)</span>
-                <span>{formatReceipt(completedOrder.summary.taxAmount)}</span>
+                <span className="text-ink-primary">{formatReceipt(completedOrder.summary.taxAmount)}</span>
               </div>
-              <div className="flex justify-between font-bold text-slate-900 text-sm pt-1 border-t border-slate-200 font-sans">
+              <div className="flex justify-between font-bold text-ink-primary text-sm pt-1 border-t border-divider font-sans">
                 <span>Total Paid</span>
-                <span className="text-indigo-600 font-mono">
+                <span className="text-ink-primary font-mono">
                   {formatReceipt(completedOrder.summary.total)}
                 </span>
               </div>
 
               {completedOrder.paymentMethod === "Cash" && (
                 <>
-                  <div className="flex justify-between text-slate-500 pt-1">
+                  <div className="flex justify-between text-ink-secondary pt-1">
                     <span>Cash Tendered</span>
                     <span>{formatReceipt(completedOrder.cashReceived || 0)}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-emerald-600">
+                  <div className="flex justify-between font-bold text-status-successText">
                     <span>Change Due</span>
                     <span>{formatReceipt(completedOrder.changeAmount || 0)}</span>
                   </div>
@@ -254,7 +254,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               )}
             </div>
             {receiptFooterNote && (
-              <p className="text-center text-[10px] text-slate-500 font-sans pt-1">
+              <p className="text-center text-[10px] text-ink-secondary font-sans pt-1">
                 {receiptFooterNote}
               </p>
             )}
@@ -263,18 +263,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       ) : (
         <div className="space-y-4">
           {errorMessage && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
-              <AlertCircle size={16} className="shrink-0 text-rose-500" />
+            <div className="p-3 bg-status-dangerBg border border-status-dangerText/20 text-status-dangerText rounded-xl text-xs flex items-center gap-2">
+              <AlertCircle size={16} className="shrink-0 text-status-dangerText" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+          <div className="p-4 bg-surface-hover rounded-xl border border-divider flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-ink-secondary font-medium">
                 Total Amount Due
               </p>
-              <p className="text-2xl font-bold text-indigo-600">
+              <p className="text-2xl font-bold text-ink-primary">
                 {format(summary.total)}
               </p>
             </div>
@@ -284,7 +284,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-2">
+            <label className="block text-xs font-semibold text-ink-secondary mb-2">
               Select Payment Method
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -293,8 +293,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 onClick={() => onSetPaymentMethod("card")}
                 className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
                   paymentMethod === "card"
-                    ? "border-indigo-600 bg-indigo-50/50 text-indigo-600 shadow-sm"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    ? "border-brand bg-brand-tint text-brand-tintText shadow-sm"
+                    : "border-divider hover:bg-surface-hover text-ink-primary"
                 }`}
               >
                 <CreditCard size={24} />
@@ -307,8 +307,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 onClick={() => onSetPaymentMethod("qris")}
                 className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
                   paymentMethod === "qris"
-                    ? "border-indigo-600 bg-indigo-50/50 text-indigo-600 shadow-sm"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    ? "border-brand bg-brand-tint text-brand-tintText shadow-sm"
+                    : "border-divider hover:bg-surface-hover text-ink-primary"
                 }`}
               >
                 <QrCode size={24} />
@@ -319,8 +319,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 onClick={() => onSetPaymentMethod("cash")}
                 className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
                   paymentMethod === "cash"
-                    ? "border-indigo-600 bg-indigo-50/50 text-indigo-600 shadow-sm"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    ? "border-brand bg-brand-tint text-brand-tintText shadow-sm"
+                    : "border-divider hover:bg-surface-hover text-ink-primary"
                 }`}
               >
                 <Banknote size={24} />
@@ -331,15 +331,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
           {/* Cash Input if Cash Selected */}
           {paymentMethod === "cash" && (
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-2.5">
+            <div className="p-3 bg-surface-hover rounded-xl border border-divider space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700">
+                <label className="text-xs font-semibold text-ink-primary">
                   Cash Received ({currencyMeta.symbol})
                 </label>
                 {cashAmountDisplay > 0 && (
                   <span
                     className={`text-xs font-bold ${
-                      !isCashInsufficient ? "text-emerald-600" : "text-rose-600"
+                      !isCashInsufficient ? "text-status-successText" : "text-status-dangerText"
                     }`}
                   >
                     {!isCashInsufficient
@@ -366,7 +366,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         val.toFixed(currencyMeta.fractionDigits),
                       )
                     }
-                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors shrink-0"
+                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-surface border border-divider hover:bg-canvas text-ink-primary transition-colors shrink-0"
                   >
                     {formatDisplay(val)}
                   </button>
@@ -375,8 +375,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           )}
 
-          <div className="pt-2 text-[11px] text-slate-400 flex items-center gap-1.5">
-            <Sparkles size={14} className="text-amber-500" />
+          <div className="pt-2 text-[11px] text-ink-secondary flex items-center gap-1.5">
+            <Sparkles size={14} className="text-status-infoText" />
             <span>Customer loyalty points eligible on this order</span>
           </div>
         </div>

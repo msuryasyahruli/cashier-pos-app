@@ -84,10 +84,10 @@ export const TransactionsPage: React.FC = () => {
     {
       header: "Order ID",
       key: "order_number",
-      className: "font-semibold text-slate-900 flex items-center gap-2",
+      className: "font-semibold text-ink-primary flex items-center gap-2",
       accessor: (tx) => (
         <>
-          <ReceiptText size={15} className="text-slate-400" />
+          <ReceiptText size={15} className="text-ink-secondary" />
           {tx.order_number}
         </>
       ),
@@ -95,7 +95,7 @@ export const TransactionsPage: React.FC = () => {
     {
       header: "Date & Time",
       key: "created_at",
-      className: "text-slate-500 font-mono",
+      className: "text-ink-secondary font-mono",
       accessor: (tx) => formatDate(tx.created_at),
     },
     {
@@ -112,15 +112,15 @@ export const TransactionsPage: React.FC = () => {
     {
       header: "Payment",
       key: "payment_method",
-      className: "text-slate-600",
+      className: "text-ink-secondary",
       accessor: (tx) => (
         <span className="inline-flex items-center gap-1.5">
           {tx.payment_method === "Cash" ? (
-            <Banknote size={14} className="text-emerald-500" />
+            <Banknote size={14} className="text-status-successText" />
           ) : tx.payment_method === "Credit Card" ? (
-            <CreditCard size={14} className="text-indigo-500" />
+            <CreditCard size={14} className="text-brand" />
           ) : (
-            <Smartphone size={14} className="text-amber-500" />
+            <Smartphone size={14} className="text-status-infoText" />
           )}
           {tx.payment_method}
         </span>
@@ -148,7 +148,7 @@ export const TransactionsPage: React.FC = () => {
       header: "Total",
       key: "total",
       align: "right",
-      className: "font-bold text-slate-900 font-mono",
+      className: "font-bold text-ink-primary font-mono",
       accessor: (tx) => {
         const info = getTransactionCurrency(
           tx.id,
@@ -303,16 +303,16 @@ export const TransactionsPage: React.FC = () => {
   // No store set up yet
   if (!currentStore) {
     return (
-      <div className="flex-1 p-6 bg-slate-50 overflow-y-auto flex items-center justify-center">
+      <div className="flex-1 p-6 bg-canvas overflow-y-auto flex items-center justify-center">
         <Card className="max-w-md w-full text-center space-y-4 py-8">
-          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+          <div className="w-14 h-14 bg-brand-tint text-brand-tintText rounded-2xl flex items-center justify-center mx-auto shadow-inner">
             <Store size={28} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800">
+            <h2 className="text-lg font-bold text-ink-primary">
               No Store Selected
             </h2>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            <p className="text-xs text-ink-secondary mt-1 max-w-sm mx-auto">
               Please set up or select a store to view transaction history and
               sales reports.
             </p>
@@ -335,12 +335,12 @@ export const TransactionsPage: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6">
+    <div className="flex-1 p-4 sm:p-6 bg-canvas overflow-y-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-bold text-ink-primary tracking-tight">
               Sales & Transactions
             </h1>
             <Badge
@@ -351,9 +351,9 @@ export const TransactionsPage: React.FC = () => {
               {currentStore.name}
             </Badge>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-ink-secondary mt-1">
             Transaction ledger for{" "}
-            <span className="font-semibold text-slate-700">
+            <span className="font-semibold text-ink-primary">
               {currentStore.name}
             </span>{" "}
             ({currentStore.branch_code || "MAIN-01"})
@@ -383,11 +383,11 @@ export const TransactionsPage: React.FC = () => {
       {/* KPI Metric Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="flex flex-col justify-between">
-          <span className="text-xs font-semibold text-slate-500">
+          <span className="text-xs font-semibold text-ink-secondary">
             Today's Gross Volume ({currentStore.name})
           </span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-slate-900 font-mono">
+            <span className="text-2xl font-extrabold text-ink-primary font-mono">
               {format(metrics.todaySales)}
             </span>
             <Badge variant="success" size="sm">
@@ -397,36 +397,36 @@ export const TransactionsPage: React.FC = () => {
         </Card>
 
         <Card className="flex flex-col justify-between">
-          <span className="text-xs font-semibold text-slate-500">
+          <span className="text-xs font-semibold text-ink-secondary">
             Completed Orders
           </span>
           <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-slate-900 font-mono">
+            <span className="text-2xl font-extrabold text-ink-primary font-mono">
               {metrics.completedCount}
             </span>
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-xs text-ink-secondary font-medium">
               out of {metrics.totalCount} total
             </span>
           </div>
         </Card>
 
         <Card className="flex flex-col justify-between">
-          <span className="text-xs font-semibold text-slate-500">
+          <span className="text-xs font-semibold text-ink-secondary">
             Revenue vs Yesterday
           </span>
           <div className="mt-2 flex items-baseline justify-between">
             <span
               className={`text-2xl font-extrabold font-mono ${
                 revenueChange === null || revenueChange >= 0
-                  ? "text-emerald-600"
-                  : "text-rose-600"
+                  ? "text-status-successText"
+                  : "text-status-dangerText"
               }`}
             >
               {revenueChange === null
                 ? "New"
                 : `${revenueChange >= 0 ? "+" : ""}${revenueChange.toFixed(1)}%`}
             </span>
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-xs text-ink-secondary font-medium">
               Yesterday: {format(metrics.yesterdaySales)}
             </span>
           </div>
@@ -436,7 +436,7 @@ export const TransactionsPage: React.FC = () => {
       {/* Table & Filters Card */}
       <Card>
         {/* Filters bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-divider">
           <div className="w-full sm:w-80">
             <Input
               placeholder={`Search in ${currentStore.name}...`}
@@ -447,7 +447,7 @@ export const TransactionsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5 overflow-x-auto">
-            <Filter size={14} className="text-slate-400 mr-1 shrink-0" />
+            <Filter size={14} className="text-ink-secondary mr-1 shrink-0" />
             {(["All", "Completed", "Refunded", "Pending"] as const).map(
               (status) => (
                 <button
@@ -455,8 +455,8 @@ export const TransactionsPage: React.FC = () => {
                   onClick={() => handleStatusChange(status)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                     statusFilter === status
-                      ? "bg-indigo-600 text-white shadow-xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-brand text-ink-onPrimary shadow-xs"
+                      : "bg-canvas text-ink-secondary hover:bg-surface-hover hover:text-ink-primary"
                   }`}
                 >
                   {status}
@@ -474,7 +474,10 @@ export const TransactionsPage: React.FC = () => {
           onRowClick={(tx) => setSelectedTx(tx)}
           emptyMessage={
             <div className="py-2">
-              <ReceiptText size={32} className="mx-auto text-slate-300 mb-2" />
+              <ReceiptText
+                size={32}
+                className="mx-auto text-ink-secondary mb-2"
+              />
               No transactions found for {currentStore.name}
             </div>
           }

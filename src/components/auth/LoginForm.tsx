@@ -55,8 +55,11 @@ export const LoginForm = () => {
     <form onSubmit={handleLogin} className="flex flex-col gap-5">
       {/* Error banner */}
       {errorMsg && (
-        <div className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-200/80 rounded-xl text-sm text-red-700 animate-in fade-in slide-in-from-top-1 duration-200">
-          <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-500" />
+        <div className="flex items-start gap-2.5 p-3 bg-status-dangerBg border border-status-dangerText/20 rounded-xl text-sm text-status-dangerText animate-in fade-in slide-in-from-top-1 duration-200">
+          <AlertCircle
+            size={16}
+            className="mt-0.5 shrink-0 text-status-dangerText"
+          />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -65,17 +68,17 @@ export const LoginForm = () => {
       <div>
         <label
           htmlFor="login-email"
-          className="block text-xs font-semibold text-slate-100 mb-1.5 uppercase tracking-wider"
+          className="block text-xs font-semibold text-ink-secondary mb-1.5 uppercase tracking-wider"
         >
           Email
         </label>
-        <div className="flex items-center gap-2.5 border border-slate-200 rounded-xl px-3.5 py-2.5 bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-          <Mail size={16} className="text-slate-400 shrink-0" />
+        <div className="flex items-center gap-2.5 border border-divider rounded-xl px-3.5 py-2.5 bg-surface focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-ring transition-all">
+          <Mail size={16} className="text-ink-secondary shrink-0" />
           <input
             id="login-email"
             type="email"
             placeholder="name@email.com"
-            className="flex-1 outline-none text-sm text-slate-800 placeholder-slate-400 bg-transparent"
+            className="flex-1 outline-none text-sm text-ink-primary placeholder-ink-secondary bg-transparent"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
@@ -88,17 +91,17 @@ export const LoginForm = () => {
       <div>
         <label
           htmlFor="login-password"
-          className="block text-xs font-semibold text-slate-100 mb-1.5 uppercase tracking-wider"
+          className="block text-xs font-semibold text-ink-secondary mb-1.5 uppercase tracking-wider"
         >
           Password
         </label>
-        <div className="flex items-center gap-2.5 border border-slate-200 rounded-xl px-3.5 py-2.5 bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-          <Lock size={16} className="text-slate-400 shrink-0" />
+        <div className="flex items-center gap-2.5 border border-divider rounded-xl px-3.5 py-2.5 bg-surface focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-ring transition-all">
+          <Lock size={16} className="text-ink-secondary shrink-0" />
           <input
             id="login-password"
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
-            className="flex-1 outline-none text-sm text-slate-800 placeholder-slate-400 bg-transparent"
+            className="flex-1 outline-none text-sm text-ink-primary placeholder-ink-secondary bg-transparent"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
@@ -107,7 +110,7 @@ export const LoginForm = () => {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="text-slate-400 hover:text-slate-100 transition-colors"
+            className="text-ink-secondary hover:text-ink-primary transition-colors"
             tabIndex={-1}
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -120,7 +123,7 @@ export const LoginForm = () => {
         <button
           type="button"
           onClick={() => navigate("/reset-password")}
-          className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline font-medium transition-colors"
+          className="text-xs text-brand hover:text-brand-hover hover:underline font-medium transition-colors"
         >
           Forgot Password?
         </button>
@@ -130,7 +133,7 @@ export const LoginForm = () => {
       <button
         type="submit"
         disabled={loading}
-        className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold text-sm hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25 transition-all duration-200 active:scale-[0.98]"
+        className="flex items-center justify-center gap-2 px-4 py-3 bg-brand text-ink-onPrimary rounded-xl font-semibold text-sm hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand-ring disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/25 transition-all duration-200 active:scale-[0.98]"
       >
         {loading ? (
           <>

@@ -7,7 +7,7 @@ export const RequireAuth = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">Loading…</div>
+      <div className="flex justify-center items-center h-screen bg-canvas text-ink-secondary">Loading…</div>
     );
   }
 

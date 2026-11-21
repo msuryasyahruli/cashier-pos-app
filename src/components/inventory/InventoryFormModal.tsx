@@ -81,11 +81,11 @@ export const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-600">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ink-secondary">
             Category
           </label>
           <select
-            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full border border-divider bg-surface rounded-xl px-3 py-2 text-xs text-ink-primary outline-none focus:border-brand focus:ring-2 focus:ring-brand-ring"
             value={formData.category}
             onChange={(e) => onChangeField("category", e.target.value)}
           >

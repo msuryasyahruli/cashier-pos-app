@@ -18,40 +18,40 @@ export const ProfilePage: React.FC = () => {
 
   if (loading && !userSettings) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-slate-50 p-8">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Loader2 size={20} className="animate-spin" /> Loading profile...
+      <div className="flex flex-1 items-center justify-center bg-canvas p-8">
+        <div className="flex items-center gap-2 text-sm text-ink-secondary">
+          <Loader2 size={20} className="animate-spin text-brand" /> Loading profile...
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6">
+    <div className="flex-1 overflow-y-auto bg-canvas p-4 sm:p-6">
       <div className="max-w-2xl space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-ink-primary">
             Profile Settings
           </h1>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-ink-secondary">
             Manage your cashier profile and account details.
           </p>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="flex items-center gap-2 rounded-xl border border-status-dangerText/20 bg-status-dangerBg px-4 py-3 text-sm text-status-dangerText">
             <AlertCircle size={16} /> {error}
           </div>
         )}
         {success && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="flex items-center gap-2 rounded-xl border border-status-successText/20 bg-status-successBg px-4 py-3 text-sm text-status-successText">
             <CheckCircle2 size={16} /> {success}
           </div>
         )}
 
         <Card className="space-y-4">
-          <h2 className="flex items-center gap-2 border-b border-slate-100 pb-2 text-sm font-bold text-slate-800">
-            <User size={14} className="text-indigo-500" /> Account Details
+          <h2 className="flex items-center gap-2 border-b border-divider pb-2 text-sm font-bold text-ink-primary">
+            <User size={14} className="text-brand" /> Account Details
           </h2>
           {userSettings ? (
             <>
@@ -72,12 +72,12 @@ export const ProfilePage: React.FC = () => {
                 />
                 <Input label="Role" value={userSettings.role ?? ""} disabled />
                 <div className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  <span className="block text-xs font-semibold uppercase tracking-wider text-ink-secondary">
                     Status
                   </span>
-                  <div className="flex items-center gap-2 px-3.5 py-2.5 text-sm text-slate-700">
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 text-sm text-ink-primary">
                     <span
-                      className={`h-2 w-2 rounded-full ${userSettings.is_active ? "bg-emerald-500" : "bg-slate-400"}`}
+                      className={`h-2 w-2 rounded-full ${userSettings.is_active ? "bg-brand" : "bg-ink-secondary"}`}
                     />
                     {userSettings.is_active ? "Active" : "Inactive"}
                   </div>
@@ -101,7 +101,7 @@ export const ProfilePage: React.FC = () => {
               </div>
             </>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-ink-secondary">
               User profile data not found.
             </p>
           )}

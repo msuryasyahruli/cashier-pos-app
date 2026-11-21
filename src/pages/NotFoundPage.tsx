@@ -5,12 +5,12 @@ import { Home } from 'lucide-react';
 
 export const NotFoundPage: React.FC = () => {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-slate-50">
-      <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-canvas">
+      <div className="w-16 h-16 rounded-2xl bg-brand-tint text-brand-tintText flex items-center justify-center mb-4">
         <span className="text-2xl font-bold">404</span>
       </div>
-      <h2 className="text-xl font-bold text-slate-800">Page Not Found</h2>
-      <p className="text-xs text-slate-500 max-w-sm mt-1 mb-6">
+      <h2 className="text-xl font-bold text-ink-primary">Page Not Found</h2>
+      <p className="text-xs text-ink-secondary max-w-sm mt-1 mb-6">
         The terminal page you are looking for does not exist or has been moved.
       </p>
       <Link to="/">

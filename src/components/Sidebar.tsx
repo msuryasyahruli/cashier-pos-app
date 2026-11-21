@@ -84,14 +84,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isOpenMobile && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
         />
       )}
 
       {/* Sidebar Container */}
       <aside
         className={`
-          bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 transition-all duration-300 ease-in-out
+          bg-surface text-ink-secondary flex flex-col shrink-0 border-r border-divider transition-all duration-300 ease-in-out
           /* Mobile Drawer Positioning (< md) */
           fixed inset-y-0 left-0 z-50 w-64 transform ${
             isOpenMobile ? "translate-x-0" : "-translate-x-full"
@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         `}
       >
         {/* Brand logo header */}
-        <div className="h-16 flex items-center justify-between px-4 xl:px-6 border-b border-slate-800/80">
+        <div className="h-16 flex items-center justify-between px-4 xl:px-6 border-b border-divider">
           <div className="flex items-center gap-3 md:justify-center xl:justify-start w-full">
             {/* Collapsed emblem on medium screens */}
             <div className="hidden md:block xl:hidden">
@@ -110,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Full Logo on mobile & expanded desktop */}
             <div className="block md:hidden xl:block">
-              <Logo size="md" showWordmark={true} theme="white" />
+              <Logo size="md" showWordmark={true} theme="gradient" />
             </div>
           </div>
 
@@ -118,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onCloseMobile}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg md:hidden transition-colors"
+            className="p-1.5 text-ink-secondary hover:text-ink-primary hover:bg-surface-hover rounded-lg md:hidden transition-colors"
             title="Close Menu"
           >
             <X size={20} />
@@ -127,7 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation menu */}
         <nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto">
-          <div className="hidden xl:block px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <div className="hidden xl:block px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">
             Main Menu
           </div>
           {navItems.map((item) => (
@@ -142,8 +142,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 md:justify-center xl:justify-start ${
                   isActive
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                    : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/70"
+                    ? "bg-brand-tint text-brand-tintText font-semibold"
+                    : "text-ink-secondary hover:text-ink-primary hover:bg-surface-hover"
                 }`
               }
             >
@@ -157,20 +157,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Cashier user session dropup */}
         <div
-          className="relative p-3 xl:p-4 border-t border-slate-800"
+          className="relative p-3 xl:p-4 border-t border-divider"
           ref={profileMenuRef}
         >
           {/* Dropup Menu Panel */}
           {isProfileMenuOpen && (
             <div
               role="menu"
-              className="absolute bottom-full left-3 right-3 mb-2 xl:left-4 xl:right-4 md:left-full md:bottom-3 md:right-auto md:w-56 md:ml-2 md:mb-0 rounded-xl border border-slate-700/80 bg-slate-800/95 backdrop-blur-md shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150"
+              className="absolute bottom-full left-3 right-3 mb-2 xl:left-4 xl:right-4 md:left-full md:bottom-3 md:right-auto md:w-56 md:ml-2 md:mb-0 rounded-xl border border-divider bg-surface backdrop-blur-md shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150"
             >
-              <div className="px-3 py-2 border-b border-slate-700/70">
-                <p className="truncate text-xs font-semibold text-white">
+              <div className="px-3 py-2 border-b border-divider">
+                <p className="truncate text-xs font-semibold text-ink-primary">
                   {userName}
                 </p>
-                <p className="truncate text-[10px] text-slate-400">
+                <p className="truncate text-[10px] text-ink-secondary">
                   {user?.email}
                 </p>
               </div>
@@ -183,10 +183,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     navigate("/profile");
                     onCloseMobile?.();
                   }}
-                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-xs font-medium text-slate-200 rounded-lg transition-colors hover:bg-slate-700/70"
+                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-xs font-medium text-ink-primary rounded-lg transition-colors hover:bg-surface-hover"
                   title="Profile Settings"
                 >
-                  <Settings size={15} className="shrink-0 text-slate-400" />
+                  <Settings size={15} className="shrink-0 text-ink-secondary" />
                   <span>Profile Settings</span>
                 </button>
                 <button
@@ -196,17 +196,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setIsProfileMenuOpen(false);
                     setIsLogoutConfirmationOpen(true);
                   }}
-                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-xs font-medium text-rose-300 rounded-lg transition-colors hover:bg-rose-500/15"
+                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-xs font-medium text-status-dangerText rounded-lg transition-colors hover:bg-status-dangerBg"
                   title="Log Out"
                 >
-                  <LogOut size={15} className="shrink-0 text-rose-400" />
+                  <LogOut size={15} className="shrink-0 text-status-dangerText" />
                   <span>Log Out</span>
                 </button>
               </div>
             </div>
           )}
 
-          <div className="bg-slate-800/60 hover:bg-slate-800/80 rounded-xl p-2 xl:p-2.5 border border-slate-700/40 transition-colors">
+          <div className="bg-surface-hover hover:bg-canvas rounded-xl p-2 xl:p-2.5 border border-divider transition-colors">
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen((open) => !open)}
@@ -218,23 +218,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex items-center gap-3 min-w-0 md:justify-center xl:justify-start">
                 <div
                   title={`${userName} (Active Session)`}
-                  className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 font-semibold flex items-center justify-center text-xs border border-indigo-500/30 shrink-0"
+                  className="w-8 h-8 rounded-full bg-brand-tint text-brand-tintText font-semibold flex items-center justify-center text-xs border border-brand-ring shrink-0"
                 >
                   {userInitials}
                 </div>
                 <div className="md:hidden xl:block min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">
+                  <p className="text-xs font-semibold text-ink-primary truncate">
                     {userName}
                   </p>
-                  <p className="text-[10px] text-emerald-400 flex items-center gap-1 capitalize">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <p className="text-[10px] text-status-successText flex items-center gap-1 capitalize">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
                     {userRole}
                   </p>
                 </div>
               </div>
               <ChevronUp
                 size={14}
-                className={`text-slate-400 transition-transform duration-200 md:hidden xl:block shrink-0 ${
+                className={`text-ink-secondary transition-transform duration-200 md:hidden xl:block shrink-0 ${
                   isProfileMenuOpen ? "rotate-180" : ""
                 }`}
               />

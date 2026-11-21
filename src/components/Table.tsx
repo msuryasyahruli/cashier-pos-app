@@ -77,9 +77,9 @@ export function Table<T>({
       <div className={`overflow-x-auto ${className}`}>
         <table className="min-w-[800px] md:w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200/60 dark:border-slate-700 uppercase font-semibold tracking-wider">
+            <tr className="bg-surface-hover text-ink-secondary border-b border-divider uppercase font-semibold tracking-wider">
               {showRowNumber && (
-                <th className="py-3 px-4 w-12 text-center text-slate-400 font-mono">
+                <th className="py-3 px-4 w-12 text-center text-ink-secondary font-mono">
                   #
                 </th>
               )}
@@ -93,17 +93,17 @@ export function Table<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+          <tbody className="divide-y divide-divider text-ink-primary">
             {loading ? (
               <tr>
                 <td
                   colSpan={totalColumnsCount}
-                  className="text-center py-10 text-slate-500 font-medium"
+                  className="text-center py-10 text-ink-secondary font-medium"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw
                       size={16}
-                      className="animate-spin text-indigo-600"
+                      className="animate-spin text-brand"
                     />
                     <span>Loading...</span>
                   </div>
@@ -113,7 +113,7 @@ export function Table<T>({
               <tr>
                 <td
                   colSpan={totalColumnsCount}
-                  className="text-center py-12 text-slate-400 font-medium"
+                  className="text-center py-12 text-ink-secondary font-medium"
                 >
                   {emptyMessage}
                 </td>
@@ -122,7 +122,7 @@ export function Table<T>({
               data.map((row, index) => {
                 const isOdd = index % 2 === 1;
                 const bgClass =
-                  striped && isOdd ? "bg-slate-50/60 dark:bg-slate-800/60" : "bg-white dark:bg-slate-900";
+                  striped && isOdd ? "bg-surface-hover/60" : "bg-surface";
 
                 return (
                   <tr
@@ -130,13 +130,13 @@ export function Table<T>({
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     className={`transition-colors ${bgClass} ${
                       onRowClick
-                        ? "hover:bg-slate-100/80 dark:hover:bg-slate-800 cursor-pointer"
-                        : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                        ? "hover:bg-surface-hover cursor-pointer"
+                        : "hover:bg-surface-hover"
                     }`}
                     title={onRowClick ? "Click to view details" : undefined}
                   >
                     {showRowNumber && (
-                      <td className="py-3.5 px-4 text-center font-mono text-slate-400 select-none">
+                      <td className="py-3.5 px-4 text-center font-mono text-ink-secondary select-none">
                         {getRowNumber(index)}
                       </td>
                     )}

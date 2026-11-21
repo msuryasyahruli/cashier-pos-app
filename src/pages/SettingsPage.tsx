@@ -289,9 +289,9 @@ export const SettingsPage: React.FC = () => {
   // Loading skeleton
   if (isLoading && !store && stores.length === 0) {
     return (
-      <div className="flex-1 p-8 bg-slate-50 overflow-y-auto flex items-center justify-center">
-        <div className="flex items-center gap-2 text-slate-500">
-          <Loader2 size={20} className="animate-spin" />
+      <div className="flex-1 p-8 bg-canvas overflow-y-auto flex items-center justify-center">
+        <div className="flex items-center gap-2 text-ink-secondary">
+          <Loader2 size={20} className="animate-spin text-brand" />
           <span className="text-sm">Loading settings...</span>
         </div>
       </div>
@@ -299,12 +299,12 @@ export const SettingsPage: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 p-4 sm:p-6 bg-slate-50 overflow-y-auto space-y-6 max-w-4xl">
+    <div className="flex-1 p-4 sm:p-6 bg-canvas overflow-y-auto space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-2xl font-bold text-ink-primary tracking-tight">
           Store Settings
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-ink-secondary mt-1">
           Manage store details, categories, currency conversion, and cashier
           terminal preferences.
         </p>
@@ -312,13 +312,13 @@ export const SettingsPage: React.FC = () => {
 
       {/* Store status messages */}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="flex items-center gap-2 rounded-xl border border-status-dangerText/20 bg-status-dangerBg px-4 py-3 text-sm text-status-dangerText">
           <AlertCircle size={16} className="shrink-0" />
           <span>{error}</span>
         </div>
       )}
       {success && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="flex items-center gap-2 rounded-xl border border-status-successText/20 bg-status-successBg px-4 py-3 text-sm text-status-successText">
           <CheckCircle2 size={16} className="shrink-0" />
           <span>{success}</span>
         </div>
@@ -328,9 +328,9 @@ export const SettingsPage: React.FC = () => {
       {store ? (
         <>
           <Card className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Tags size={14} className="text-indigo-500" />
+            <div className="flex items-center justify-between border-b border-divider pb-2">
+              <h2 className="text-sm font-bold text-ink-primary flex items-center gap-2">
+                <Tags size={14} className="text-brand" />
                 Store Categories
               </h2>
               <Button
@@ -343,7 +343,7 @@ export const SettingsPage: React.FC = () => {
               </Button>
             </div>
             {categories.length === 0 ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-secondary">
                 No categories have been created for this store yet.
               </p>
             ) : (
@@ -353,14 +353,14 @@ export const SettingsPage: React.FC = () => {
                   return (
                     <div
                       key={`${category.store_id || "legacy"}-${category.id}`}
-                      className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2"
+                      className="flex items-center justify-between rounded-xl border border-divider px-3 py-2"
                     >
                       <div>
-                        <p className="text-sm font-medium text-slate-700">
+                        <p className="text-sm font-medium text-ink-primary">
                           {category.name}
                         </p>
                         {!isStoreOwned && (
-                          <p className="text-[10px] text-slate-400">
+                          <p className="text-[10px] text-ink-secondary">
                             Legacy category
                           </p>
                         )}
@@ -391,9 +391,9 @@ export const SettingsPage: React.FC = () => {
           </Card>
 
           <Card className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-2">
-              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Store size={14} className="text-indigo-500" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-divider pb-2">
+              <h2 className="text-sm font-bold text-ink-primary flex items-center gap-2">
+                <Store size={14} className="text-brand" />
                 Store Information
               </h2>
 
@@ -403,7 +403,7 @@ export const SettingsPage: React.FC = () => {
                   <select
                     value={store.id}
                     onChange={(e) => selectStore(e.target.value)}
-                    className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="text-xs bg-surface border border-divider rounded-lg px-2.5 py-1 text-ink-primary outline-none focus:border-brand focus:ring-2 focus:ring-brand-ring"
                   >
                     {stores.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -454,12 +454,12 @@ export const SettingsPage: React.FC = () => {
           </Card>
 
           <Card className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Coins size={14} className="text-indigo-500" />
+            <div className="flex items-center justify-between border-b border-divider pb-2">
+              <h2 className="text-sm font-bold text-ink-primary flex items-center gap-2">
+                <Coins size={14} className="text-brand" />
                 Currency & Exchange Rate
               </h2>
-              <span className="text-[11px] font-medium text-slate-500">
+              <span className="text-[11px] font-medium text-ink-secondary">
                 Base Currency: IDR (Rp)
               </span>
             </div>
@@ -468,7 +468,7 @@ export const SettingsPage: React.FC = () => {
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="store-currency-select"
-                  className="text-xs font-semibold text-slate-700"
+                  className="text-xs font-semibold text-ink-secondary"
                 >
                   Active Store Currency
                 </label>
@@ -478,7 +478,7 @@ export const SettingsPage: React.FC = () => {
                   onChange={(e) =>
                     handleCurrencyChange(e.target.value as CurrencyCode)
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-divider bg-surface px-3.5 py-2 text-sm text-ink-primary outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-ring"
                 >
                   {SUPPORTED_CURRENCIES.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -511,10 +511,10 @@ export const SettingsPage: React.FC = () => {
           </Card>
 
           <Card className="space-y-4">
-            <h2 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
+            <h2 className="text-sm font-bold text-ink-primary border-b border-divider pb-2">
               Hardware & Peripherals
             </h2>
-            <div className="space-y-3 text-xs text-slate-700">
+            <div className="space-y-3 text-xs text-ink-primary">
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -525,7 +525,7 @@ export const SettingsPage: React.FC = () => {
                       autoOpenCashDrawer: e.target.checked,
                     }))
                   }
-                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                  className="rounded accent-brand text-brand focus:ring-brand-ring"
                 />
                 <span>
                   Automatically trigger cash drawer open on cash checkout
@@ -541,7 +541,7 @@ export const SettingsPage: React.FC = () => {
                       autoPrintCardReceipt: e.target.checked,
                     }))
                   }
-                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                  className="rounded accent-brand text-brand focus:ring-brand-ring"
                 />
                 <span>
                   Auto-print paper receipt upon successful card transaction
@@ -557,7 +557,7 @@ export const SettingsPage: React.FC = () => {
                       barcodeScanSound: e.target.checked,
                     }))
                   }
-                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                  className="rounded accent-brand text-brand focus:ring-brand-ring"
                 />
                 <span>Enable sound feedback on barcode scan</span>
               </label>
@@ -583,14 +583,14 @@ export const SettingsPage: React.FC = () => {
       ) : (
         <Card className="space-y-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-brand-tint text-brand-tintText flex items-center justify-center shrink-0">
               <Store size={22} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-800">
+              <h2 className="text-base font-bold text-ink-primary">
                 Set Up Your Store
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-ink-secondary mt-0.5">
                 You haven't set up a store yet. Create one now to begin managing
                 products and taking orders.
               </p>
@@ -628,7 +628,7 @@ export const SettingsPage: React.FC = () => {
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="new-store-currency-select"
-                  className="text-xs font-semibold text-slate-700"
+                  className="text-xs font-semibold text-ink-secondary"
                 >
                   Store Currency
                 </label>
@@ -638,7 +638,7 @@ export const SettingsPage: React.FC = () => {
                   onChange={(e) =>
                     handleNewCurrencyChange(e.target.value as CurrencyCode)
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-divider bg-surface px-3.5 py-2 text-sm text-ink-primary outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand-ring"
                 >
                   {SUPPORTED_CURRENCIES.map((c) => (
                     <option key={c.code} value={c.code}>

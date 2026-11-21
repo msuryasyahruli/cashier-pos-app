@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -12,38 +12,44 @@ export const Input: React.FC<InputProps> = ({
   error,
   helperText,
   icon,
-  className = '',
+  className = "",
   id,
   ...props
 }) => {
-  const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const inputId =
+    id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
 
   return (
     <div className="w-full space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+        <label
+          htmlFor={inputId}
+          className="block text-xs font-semibold uppercase tracking-wider text-ink-secondary"
+        >
           {label}
         </label>
       )}
       <div className="relative flex items-center">
         {icon && (
-          <div className="absolute left-3.5 text-slate-400 pointer-events-none flex items-center">
+          <div className="absolute left-3.5 text-ink-secondary pointer-events-none flex items-center">
             {icon}
           </div>
         )}
         <input
           id={inputId}
-          className={`w-full rounded-xl border bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-500/30 disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-400 ${
-            icon ? 'pl-10' : ''
+          className={`w-full rounded-xl border bg-surface px-3.5 py-2.5 text-sm text-ink-primary placeholder-ink-secondary transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-ring disabled:bg-surface-hover disabled:text-ink-secondary ${
+            icon ? "pl-10" : ""
           } ${
-            error ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-100' : 'border-slate-200 dark:border-slate-700'
+            error
+              ? "border-status-dangerText/50 focus:border-status-dangerText focus:ring-status-dangerBg"
+              : "border-divider"
           } ${className}`}
           {...props}
         />
       </div>
-      {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+      {error && <p className="text-xs text-status-dangerText mt-1">{error}</p>}
       {!error && helperText && (
-        <p className="text-[11px] text-slate-500 mt-1">{helperText}</p>
+        <p className="text-[11px] text-ink-secondary mt-1">{helperText}</p>
       )}
     </div>
   );

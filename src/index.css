@@ -3,58 +3,74 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Fresh Emerald Theme — Light Mode */
+    --bg-canvas: 243 246 244;          /* #F3F6F4 */
+    --bg-surface: 255 255 255;         /* #FFFFFF */
+    --bg-surface-hover: 249 250 251;   /* #F9FAFB */
+    --border-default: 229 231 235;     /* #E5E7EB */
+
+    --brand-primary: 5 150 105;        /* #059669 */
+    --brand-hover: 4 120 87;           /* #047857 */
+    --brand-tint: 236 253 245;         /* #ECFDF5 */
+    --brand-tint-text: 5 150 105;      /* #059669 */
+    --brand-ring: 167 243 208;         /* #A7F3D0 */
+
+    --text-primary: 17 24 39;          /* #111827 */
+    --text-secondary: 107 114 128;     /* #6B7280 */
+    --text-on-primary: 255 255 255;    /* #FFFFFF */
+
+    --action-danger: 185 28 28;        /* #B91C1C */
+    --action-danger-hover: 153 27 27;  /* #991B1B */
+
+    --status-success-bg: 220 252 231;  /* #DCFCE7 */
+    --status-success-text: 21 128 61;  /* #15803D */
+    --status-warning-bg: 254 243 199;  /* #FEF3C7 */
+    --status-warning-text: 180 83 9;   /* #B45309 */
+    --status-danger-bg: 254 226 226;   /* #FEE2E2 */
+    --status-danger-text: 185 28 28;   /* #B91C1C */
+    --status-info-bg: 237 233 254;     /* #EDE9FE */
+    --status-info-text: 109 40 217;    /* #6D28D9 */
+  }
+
+  .dark {
+    /* Fresh Emerald Theme — Dark Mode */
+    --bg-canvas: 11 17 15;             /* #0B110F */
+    --bg-surface: 17 24 39;            /* #111827 */
+    --bg-surface-hover: 31 41 55;      /* #1F2937 */
+    --border-default: 55 65 81;        /* #374151 */
+
+    --brand-primary: 5 150 105;        /* #059669 */
+    --brand-hover: 4 120 87;           /* #047857 */
+    --brand-tint: 6 78 59;             /* #064E3B */
+    --brand-tint-text: 110 231 183;    /* #6EE7B7 */
+    --brand-ring: 16 185 129;          /* #10B981 */
+
+    --text-primary: 249 250 251;       /* #F9FAFB */
+    --text-secondary: 156 163 175;     /* #9CA3AF */
+    --text-on-primary: 255 255 255;    /* #FFFFFF */
+
+    --action-danger: 185 28 28;        /* #B91C1C */
+    --action-danger-hover: 153 27 27;  /* #991B1B */
+
+    --status-success-bg: 20 83 45;     /* #14532D */
+    --status-success-text: 134 239 172;/* #86EFAC */
+    --status-warning-bg: 120 53 15;    /* #78350F */
+    --status-warning-text: 253 230 138;/* #FDE68A */
+    --status-danger-bg: 127 29 29;     /* #7F1D1D */
+    --status-danger-text: 252 165 165; /* #FCA5A5 */
+    --status-info-bg: 76 29 149;       /* #4C1D95 */
+    --status-info-text: 221 214 254;   /* #DDD6FE */
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased min-h-screen selection:bg-brand-500 selection:text-white;
+    @apply bg-canvas text-ink-primary antialiased min-h-screen selection:bg-brand selection:text-ink-onPrimary;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  }
-
-  .dark .bg-white {
-    @apply bg-slate-900;
-  }
-
-  .dark .bg-slate-50 {
-    @apply bg-slate-950;
-  }
-
-  .dark .bg-slate-100 {
-    @apply bg-slate-900;
-  }
-
-  .dark .text-slate-900,
-  .dark .text-slate-800 {
-    @apply text-slate-100;
-  }
-
-  .dark .text-slate-700,
-  .dark .text-slate-600 {
-    @apply text-slate-200;
-  }
-
-  .dark .text-slate-500 {
-    @apply text-slate-400;
-  }
-
-  .dark .border-slate-200,
-  .dark .border-slate-100 {
-    @apply border-slate-700;
-  }
-
-  .dark [class*="bg-slate-50/"] {
-    background-color: rgb(15 23 42 / 0.85);
-  }
-
-  .dark [class*="bg-slate-100/"] {
-    background-color: rgb(30 41 59 / 0.85);
-  }
-
-  .dark [class*="border-slate-100/"],
-  .dark [class*="border-slate-200/"] {
-    border-color: rgb(51 65 85 / 0.9);
   }
 
   .dark select,
   .dark option {
-    background-color: rgb(30 41 59);
-    color: rgb(241 245 249);
+    background-color: rgb(var(--bg-surface));
+    color: rgb(var(--text-primary));
   }
 }
